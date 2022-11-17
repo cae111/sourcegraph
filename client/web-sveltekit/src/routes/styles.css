@@ -1,0 +1,17 @@
+@import '@fontsource/fira-mono';
+
+:root {
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --code-font-family: sfmono-regular, consolas, menlo, dejavu sans mono, monospace;
+    --code-font-size: #{(12/14)}em;
+
+    font-family: var(--font-body);
+    color: var(--color-text);
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    background-color: var(--body-bg);
+}

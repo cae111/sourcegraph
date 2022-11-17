@@ -10,10 +10,11 @@ import { persistenceMapper } from './persistenceMapper'
 
 const getHeaders = (): { [header: string]: string } => {
     const headers: { [header: string]: string } = {
-        ...window?.context?.xhrHeaders,
+        //...window?.context?.xhrHeaders,
         Accept: 'application/json',
         'Content-Type': 'application/json',
     }
+    /*
     const parameters = new URLSearchParams(window.location.search)
     const trace = parameters.get('trace')
     if (trace) {
@@ -23,6 +24,7 @@ const getHeaders = (): { [header: string]: string } => {
     if (feat.length) {
         headers['X-Sourcegraph-Override-Feature'] = feat.join(',')
     }
+    */
     return headers
 }
 
@@ -43,6 +45,7 @@ export const requestGraphQL = <TResult, TVariables = object>(
         request,
         variables,
         headers: getHeaders(),
+        baseUrl: 'https://sourcegraph.test:3443',
     })
 
 type WebGraphQlOperationResults = ReturnType<WebGraphQlOperations[keyof WebGraphQlOperations]>

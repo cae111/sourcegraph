@@ -1,6 +1,6 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { Observable, fromEvent, Subscription, OperatorFunction, pipe, Subscriber, Notification } from 'rxjs'
-import { defaultIfEmpty, map, materialize, scan, switchMap } from 'rxjs/operators'
+import { defaultIfEmpty, map, materialize, scan, switchMap } from 'rxjs/operators/index'
 
 import { asError, ErrorLike, isErrorLike } from '@sourcegraph/common'
 
