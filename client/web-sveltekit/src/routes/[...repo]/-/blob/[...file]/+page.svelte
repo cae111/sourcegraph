@@ -1,9 +1,13 @@
 <script lang="ts">
+    import CodeMirrorBlob from '$lib/CodeMirrorBlob.svelte'
     import type { PageData } from './$types'
 
     export let data: PageData
-
-    $: console.log(data)
+    $: blob = data.blob.blob
 </script>
 
-Test
+{#await blob}
+    Loading blob...
+{:then data}
+    <CodeMirrorBlob value={data?.content ?? ''} />
+{/await}

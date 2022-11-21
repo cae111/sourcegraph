@@ -20,7 +20,7 @@
     }
 </script>
 
-<form bind:this={form} action="/search" method="get" on:submit={handleSubmit}>
+<form class="search-box" bind:this={form} action="/search" method="get" on:submit={handleSubmit}>
     <input class="hidden" value={fullQuery} name="q" />
     <CodeMirrorQueryInput
         placeholder="Search for code or files"
@@ -36,7 +36,6 @@
 
 <style lang="scss">
     form {
-        align-self: stretch;
         display: flex;
         align-items: center;
         background-color: var(--color-bg-1);

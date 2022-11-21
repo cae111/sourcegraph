@@ -1,23 +1,23 @@
 <script lang="ts">
-	import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-    import {createEventDispatcher} from 'svelte';
+    import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
+    import { createEventDispatcher } from 'svelte'
 
-	import { EditorState, Prec, type Extension } from "@codemirror/state";
-	import { EditorView, keymap, placeholder as placeholderExtension } from "@codemirror/view";
-	import { QueryChangeSource, type QueryState } from "@sourcegraph/search";
-    import type { SearchPatternType } from "@sourcegraph/shared/src/graphql-operations";
-	import { parseInputAsQuery } from "./codemirror/parsedQuery";
-	import { browser } from "$app/environment";
-    import { querySyntaxHighlighting, singleLine } from "./codemirror";
+    import { EditorState, Prec, type Extension } from '@codemirror/state'
+    import { EditorView, keymap, placeholder as placeholderExtension } from '@codemirror/view'
+    import { QueryChangeSource, type QueryState } from '@sourcegraph/search'
+    import type { SearchPatternType } from '@sourcegraph/shared/src/graphql-operations'
+    import { parseInputAsQuery } from './codemirror/parsedQuery'
+    import { browser } from '$app/environment'
+    import { querySyntaxHighlighting, singleLine } from './codemirror'
 
     export let queryState: QueryState
     export let patternType: SearchPatternType
     export let interpretComments: boolean = false
     export let placeholder: string = ''
 
-    const dispatch = createEventDispatcher<{change: QueryState, submit: void}>();
-    let container: HTMLDivElement|null = null;
-    let editor: EditorView|null = null;
+    const dispatch = createEventDispatcher<{ change: QueryState; submit: void }>()
+    let container: HTMLDivElement | null = null
+    let editor: EditorView | null = null
 
     let dynamicExtensions: Extension[] = []
 
@@ -32,20 +32,21 @@
 
     function createEditor(container: HTMLDivElement): EditorView {
         const extensions = [
+            dynamicExtensions,
             Prec.high(
-              keymap.of([
-                  {
-                      key: 'Enter',
-                      run() {
-                          dispatch('submit');
-                          return true;
-                      },
-                  }
-              ])
+                keymap.of([
+                    {
+                        key: 'Enter',
+                        run() {
+                            dispatch('submit')
+                            return true
+                        },
+                    },
+                ])
             ),
             singleLine,
             EditorView.updateListener.of(update => {
-                const {state} = update;
+                const { state } = update
                 if (update.docChanged) {
                     dispatch('change', {
                         query: state.sliceDoc(),
@@ -71,27 +72,27 @@
                 // See https://github.com/sourcegraph/sourcegraph/issues/38677
                 querySyntaxHighlighting,
             ]),
-        ];
+        ]
 
         const view = new EditorView({
             state: EditorState.create({ doc: queryState.query, extensions }),
             parent: container,
         })
-        return view;
+        return view
     }
 
-    function e(): EditorView|null {
+    function e(): EditorView | null {
         return editor
     }
 
-    $: if(container) {
+    $: if (container) {
         editor = createEditor(container)
     }
 
     $: if (e() && e()?.state.sliceDoc() !== queryState.query) {
-        const view = e();
+        const view = e()
         view?.dispatch({
-            changes: {from: 0, to: view.state.doc.length, insert: queryState.query}
+            changes: { from: 0, to: view.state.doc.length, insert: queryState.query },
         })
     }
 </script>
@@ -107,6 +108,9 @@
 <style lang="scss">
     input {
         border: 0;
+        font-family: var(--code-font-family);
+        font-size: var(--code-font-size);
+        width: 100%;
     }
 
     .root {
@@ -117,11 +121,9 @@
         background-color: var(--color-bg-1);
 
         :global(.cm-editor) {
-            &:global(.cm-focused) {
-                // Codemirror shows a focus ring by default. Since we handle that
-                // differently, disable it here.
-                outline: none !important;
-            }
+            // Codemirror shows a focus ring by default. Since we handle that
+            // differently, disable it here.
+            outline: none !important;
 
             :global(.cm-scroller) {
                 // Codemirror shows a vertical scroll bar by default (when

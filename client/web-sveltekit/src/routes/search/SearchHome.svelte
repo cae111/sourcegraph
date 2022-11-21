@@ -16,10 +16,14 @@
     section {
         display: flex;
         flex-direction: column;
-        justify-content: flex-start;
         align-items: center;
-        width: 100%;
         overflow: auto;
+        max-width: 64rem;
+        align-self: center;
+
+        :global(.search-box) {
+            min-width: 60rem;
+        }
     }
 
     img.logo {

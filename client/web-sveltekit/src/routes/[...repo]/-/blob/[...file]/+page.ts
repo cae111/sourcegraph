@@ -5,14 +5,14 @@ import { HighlightResponseFormat } from '@sourcegraph/search'
 
 export const load: PageLoad = async ({ url, params }) => {
     const { repoName, revision, rawRevision } = parseRepoRevision(params.repo)
-    const blob = await fetchBlob({
+    return fetchBlob({
         filePath: params.file,
         repoName,
         revision: revision ?? '',
         format: HighlightResponseFormat.JSON_SCIP,
     }).toPromise()
 
-    return blob
+    return { blob: { blob } }
 }
 
 export const ssr = false
