@@ -5,7 +5,7 @@ import { HighlightResponseFormat } from '@sourcegraph/search'
 
 export const load: PageLoad = async ({ url, params }) => {
     const { repoName, revision, rawRevision } = parseRepoRevision(params.repo)
-    return fetchBlob({
+    const blob = fetchBlob({
         filePath: params.file,
         repoName,
         revision: revision ?? '',
