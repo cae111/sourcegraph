@@ -15,6 +15,15 @@ const config: UserConfig = {
             },
         },
     },
+    server: {
+        proxy: {
+            '^(/sign-in|/.assets|/-|/.api|/search/stream)': {
+                target: 'https://sourcegraph.com',
+                changeOrigin: true,
+                secure: false,
+            },
+        },
+    },
 }
 
 export default config

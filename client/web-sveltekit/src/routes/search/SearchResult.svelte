@@ -27,6 +27,7 @@
             <slot name="title" />
         </div>
     </div>
+    <slot />
 </article>
 
 <style lang="scss">
@@ -36,6 +37,7 @@
         padding: 0.5rem 0.5rem 0.5rem 0;
         position: sticky;
         top: 0;
+        background-color: var(--body-bg);
     }
     .title {
         flex: 1 1 auto;

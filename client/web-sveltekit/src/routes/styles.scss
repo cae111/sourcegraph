@@ -5,9 +5,12 @@
 @import '@sourcegraph/branded/src/global-styles/mixins.scss';
 @import '@sourcegraph/branded/src/global-styles/reboot.scss';
 @import '@sourcegraph/branded/src/global-styles/utilities/text.scss';
+@import '@sourcegraph/branded/src/global-styles/utilities/border-radius.scss';
 
+@import '@sourcegraph/branded/src/global-styles/typography.scss';
 @import '@sourcegraph/branded/src/global-styles/code.scss';
 @import '@sourcegraph/shared/src/global-styles/icons.scss';
+@import '@sourcegraph/branded/src/global-styles/utilities.scss';
 
 :root {
     --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif,
@@ -37,4 +40,8 @@ body {
     background-color: var(--body-bg);
     overflow: hidden;
     font-size: 14px;
+}
+
+.match-highlight {
+    background-color: var(--mark-bg);
 }

@@ -1,6 +1,8 @@
 <script lang="ts">
     import { page } from '$app/stores'
     import logo from '$lib/images/sourcegraph-mark.svg'
+    import { authenticatedUser } from '$lib/stores'
+    import UserAvatar from '$lib/UserAvatar.svelte'
     import { mdiBookOutline, mdiChartBar, mdiMagnify } from '@mdi/js'
 </script>
 
@@ -8,7 +10,7 @@
     <a href="/search">
         <img src={logo} alt="Sourcegraph" width="25" height="25" />
     </a>
-    <nav>
+    <nav class="ml-2">
         <ul>
             <li aria-current={$page.url.pathname === '/search' ? 'page' : undefined}>
                 <a href="/search">
@@ -18,6 +20,7 @@
                     <span>Code search</span>
                 </a>
             </li>
+            <!--
             <li aria-current={$page.url.pathname === '/notebooks' ? 'page' : undefined}>
                 <a href="/notebooks">
                     <svg aria-hidden="true" viewBox="0 0 25 25">
@@ -83,8 +86,17 @@
                     Insights
                 </a>
             </li>
+            -->
         </ul>
     </nav>
+    <div class="user">
+        {#if $authenticatedUser}
+            <UserAvatar user={$authenticatedUser} />
+            <a href="/-/sign-out" data-sveltekit-reload>Sign out</a>
+        {:else}
+            <a href="/sign-in" data-sveltekit-reload>Sign in</a>
+        {/if}
+    </div>
 </header>
 
 <style lang="scss">
@@ -100,8 +112,8 @@
 
     nav {
         display: flex;
-        justify-content: center;
         align-self: stretch;
+        flex: 1;
     }
 
     svg {

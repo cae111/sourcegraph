@@ -42,10 +42,12 @@ export function refreshAuthenticatedUser(): Observable<never> {
  * errors, which mislead the user into thinking there is a problem (and make debugging any actual
  * issue much harder).
  */
-export const authRequired = authenticatedUser.pipe(map(user => user === null && !window.context?.sourcegraphDotComMode))
+export const authRequired = authenticatedUser.pipe(
+    map(user => user === null && !globalThis.context?.sourcegraphDotComMode)
+)
 
 // Populate authenticatedUser.
-if (window.context?.isAuthenticatedUser) {
+if (globalThis.context?.isAuthenticatedUser) {
     refreshAuthenticatedUser()
         .toPromise()
         .then(() => undefined)

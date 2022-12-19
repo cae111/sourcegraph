@@ -1,6 +1,6 @@
 <script lang="ts">
     import { enhance } from '$app/forms'
-    import { goto } from '$app/navigation'
+    import { goto, invalidate } from '$app/navigation'
     import Icon from '$lib/Icon.svelte'
     import { mdiMagnify } from '@mdi/js'
 
@@ -14,9 +14,12 @@
 
     $: fullQuery = queryState.query
 
-    function handleSubmit(event: Event) {
+    async function handleSubmit(event: Event) {
         event.preventDefault()
-        goto(`?q=${fullQuery}`)
+        const url = `/search?q=${fullQuery}`
+        await invalidate(`query:${fullQuery}`)
+        // TODO: Replace URL if it's the same query
+        await goto(url)
     }
 </script>
 
@@ -36,12 +39,20 @@
 
 <style lang="scss">
     form {
+        flex: 1;
         display: flex;
         align-items: center;
         background-color: var(--color-bg-1);
         padding-left: 0.5rem;
         border-top-left-radius: 5px;
         border-bottom-left-radius: 5px;
+        border: 1px solid var(--border-color);
+        margin: 2px;
+
+        &:focus-within {
+            outline: 0;
+            box-shadow: var(--focus-box-shadow);
+        }
     }
 
     .hidden {
