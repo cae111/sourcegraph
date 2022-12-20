@@ -96,14 +96,14 @@
                     scrollParent={$resultContainer}
                     {count}
                     items={results}
-                    let:item={result}
+                    let:item
                     on:intersecting={loadMore}
                 >
                     <li>
-                        {#if result.type === 'content'}
-                            <FileSearchResult {result} />
-                        {:else if result.type === 'repo'}
-                            <RepoSearchResult {result} />
+                        {#if item.type === 'content'}
+                            <FileSearchResult result={item} />
+                        {:else if item.type === 'repo'}
+                            <RepoSearchResult result={item} />
                         {/if}
                     </li>
                 </VirtualList>

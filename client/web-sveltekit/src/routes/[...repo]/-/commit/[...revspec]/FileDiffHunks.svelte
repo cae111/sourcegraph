@@ -26,7 +26,7 @@
                         {/if}
                     </td>
                 </tr>
-                {#each hunk.highlight.lines as line (line)}
+                {#each hunk.highlight.lines as line, i (line)}
                     {@const both = line.kind === DiffHunkLineType.UNCHANGED}
                     {@const addition = line.kind === DiffHunkLineType.ADDED}
                     {@const deletion = line.kind === DiffHunkLineType.DELETED}
@@ -34,10 +34,10 @@
 
                     <tr class:both class:addition class:deletion>
                         <td class="num"
-                            >{#if !addition}{hunk.oldRange.startLine - 1}{/if}</td
+                            >{#if !addition}{hunk.oldRange.startLine - 1 + i}{/if}</td
                         >
                         <td class="num"
-                            >{#if !deletion}{hunk.newRange.startLine - 1}{/if}</td
+                            >{#if !deletion}{hunk.newRange.startLine - 1 + i}{/if}</td
                         >
                         <td class="content" data-diff-marker={marker}>{@html line.html}</td>
                     </tr>
