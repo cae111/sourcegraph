@@ -19,13 +19,10 @@
     <ul>
         {#each entries as entry}
             <li>
-                <a
-                    data-sveltekit-preload-data={entry.isDirectory ? 'hover' : 'tap'}
-                    data-sveltekit-preload-code="hover"
-                    href={entry.url}
-                    ><Icon svgPath={entry.isDirectory ? mdiFolderOutline : mdiFileDocumentOutline} inline />
-                    {entry.name}</a
-                >
+                <a href={entry.url}>
+                    <Icon svgPath={entry.isDirectory ? mdiFolderOutline : mdiFileDocumentOutline} inline />
+                    {entry.name}
+                </a>
             </li>
         {/each}
     </ul>
