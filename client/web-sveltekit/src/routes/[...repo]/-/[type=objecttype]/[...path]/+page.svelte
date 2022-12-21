@@ -12,20 +12,19 @@
     }
 
     $: blob = data.prefetch.blob
+    $: highlights = data.prefetch.highlights
     $: treeEntries = data.prefetch.treeEntries
 </script>
 
 <section>
     <div class="sidebar"><FileTree activeEntry={last($page.params.path.split('/'))} treeOrError={$treeEntries} /></div>
     <div class="content">
-        {#if blob}
-            {#await blob}
-                Loading blob...
-            {:then data}
-                {#if data}
-                    <CodeMirrorBlob blob={data} />
-                {/if}
-            {/await}
+        {#if data.type === 'blob'}
+            {#if $blob}
+                <CodeMirrorBlob blob={$blob} highlights={$highlights ?? ''} />
+            {:else}
+                Loading...
+            {/if}
         {:else}
             <TreeInfo treeOrError={$treeEntries} />
         {/if}

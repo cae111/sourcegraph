@@ -119,62 +119,61 @@
         box-sizing: border-box;
         width: 100%;
         background-color: var(--color-bg-1);
-    }
 
-    :global(.cm-editor) {
-        // Codemirror shows a focus ring by default. Since we handle that
-        // differently, disable it here.
-        outline: none !important;
+        :global(.cm-editor) {
+            // Codemirror shows a focus ring by default. Since we handle that
+            // differently, disable it here.
+            outline: none !important;
 
-        :global(.cm-scroller) {
-            // Codemirror shows a vertical scroll bar by default (when
-            // overflowing). This disables it.
-            overflow-x: hidden;
-        }
+            :global(.cm-scroller) {
+                // Codemirror shows a vertical scroll bar by default (when
+                // overflowing). This disables it.
+                overflow-x: hidden;
+            }
 
-        :global(.cm-content) {
-            caret-color: var(--search-query-text-color);
-            font-family: var(--code-font-family);
-            font-size: var(--code-font-size);
-            color: var(--search-query-text-color);
-            // Disable default padding
-            padding: 0;
+            :global(.cm-content) {
+                caret-color: var(--search-query-text-color);
+                font-family: var(--code-font-family);
+                font-size: var(--code-font-size);
+                color: var(--search-query-text-color);
+                // Disable default padding
+                padding: 0;
 
-            &:global(.focus-visible),
-            &:focus-visible {
-                box-shadow: none;
+                &:global(.focus-visible) {
+                    box-shadow: none;
+                }
             }
         }
-    }
 
-    :global(.cm-line) {
-        // Disable default padding
-        padding: 0;
-    }
+        :global(.cm-line) {
+            // Disable default padding
+            padding: 0;
+        }
 
-    :global(.cm-placeholder) {
-        // CodeMirror uses display: inline-block by default, but that causes
-        // Chrome to render a larger cursor if the placeholder holder spans
-        // multiple lines. Firefox doesn't have this problem (but
-        // setting display: inline doesn't seem to have a negative effect
-        // either)
-        display: inline;
-        // Once again, Chrome renders the placeholder differently than
-        // Firefox. CodeMirror sets 'word-break: break-word' (which is
-        // deprecated) and 'overflow-wrap: anywhere' but they don't seem to
-        // have an effect in Chrome (at least not in this instance).
-        // Setting 'word-break: break-all' explicitly makes appearances a
-        // bit better for example queries with long tokens.
-        word-break: break-all;
-    }
-    // .placeholder needs to explicilty have the same background color because it
-    // appears to be placed outside of .focusedFilter rather than within it.
-    :global(.placeholder),
-    :global(.focusedFilter) {
-        background-color: var(--gray-02);
+        :global(.cm-placeholder) {
+            // CodeMirror uses display: inline-block by default, but that causes
+            // Chrome to render a larger cursor if the placeholder holder spans
+            // multiple lines. Firefox doesn't have this problem (but
+            // setting display: inline doesn't seem to have a negative effect
+            // either)
+            display: inline;
+            // Once again, Chrome renders the placeholder differently than
+            // Firefox. CodeMirror sets 'word-break: break-word' (which is
+            // deprecated) and 'overflow-wrap: anywhere' but they don't seem to
+            // have an effect in Chrome (at least not in this instance).
+            // Setting 'word-break: break-all' explicitly makes appearances a
+            // bit better for example queries with long tokens.
+            word-break: break-all;
+        }
+        // .placeholder needs to explicilty have the same background color because it
+        // appears to be placed outside of .focusedFilter rather than within it.
+        :global(.placeholder),
+        :global(.focusedFilter) {
+            background-color: var(--gray-02);
 
-        :global(.theme-dark) & {
-            background-color: var(--gray-08);
+            :global(.theme-dark) & {
+                background-color: var(--gray-08);
+            }
         }
     }
 </style>

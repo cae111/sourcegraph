@@ -1,13 +1,13 @@
 import type { PageLoad } from './$types'
 import { parseRepoRevision } from '@sourcegraph/shared/src/util/url'
-import { fetchBlob } from '$lib/blob'
-import { HighlightResponseFormat } from '@sourcegraph/search'
+import { fetchHighlight, fetchBlobPlaintext } from '$lib/blob'
 import { requestGraphQL } from '@sourcegraph/web/src/backend/graphql'
 import { asError, isErrorLike, type ErrorLike } from '@sourcegraph/common'
 import { fetchTreeEntries } from '@sourcegraph/shared/src/backend/repo'
-import { catchError, startWith } from 'rxjs/operators/index'
+import { catchError } from 'rxjs/operators/index'
 import { dirname } from 'path'
 import { psub } from '$lib/utils'
+import { map } from 'rxjs/operators/index'
 
 export const load: PageLoad = ({ params, parent }) => {
     const { repoName, revision } = parseRepoRevision(params.repo)
@@ -29,20 +29,27 @@ export const load: PageLoad = ({ params, parent }) => {
         )
     )
 
-    const blob =
-        params.type === 'blob'
-            ? fetchBlob({
-                  filePath: params.path,
-                  repoName,
-                  revision: revision ?? '',
-                  format: HighlightResponseFormat.JSON_SCIP,
-              }).toPromise()
-            : null
-
     return {
         type: params.type,
         prefetch: {
-            blob,
+            blob:
+                params.type === 'blob'
+                    ? psub(
+                          fetchBlobPlaintext({
+                              filePath: params.path,
+                              repoName,
+                              revision: revision ?? '',
+                          }).toPromise()
+                      )
+                    : null,
+            highlights:
+                params.type === 'blob'
+                    ? psub(
+                          fetchHighlight({ filePath: params.path, repoName, revision: revision ?? '' })
+                              .pipe(map(blob => blob?.highlight.lsif))
+                              .toPromise()
+                      )
+                    : null,
             treeEntries,
         },
     }

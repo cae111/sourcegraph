@@ -1,7 +1,7 @@
 import { memoizeObservable } from '@sourcegraph/common'
 import { makeRepoURI } from '@sourcegraph/shared/src/util/url'
 import { requestGraphQL } from '@sourcegraph/web/src/backend/graphql'
-import { HighlightResponseFormat, type BlobFileFields, type BlobResult, type BlobVariables } from '@sourcegraph/web/src/graphql-operations'
+import type { BlobFileFields, BlobResult, BlobVariables } from '@sourcegraph/web/src/graphql-operations'
 import type { Observable } from 'rxjs'
 import { dataOrThrowErrors, gql } from '@sourcegraph/http-client'
 import { map } from 'rxjs/internal/operators/map'
@@ -11,18 +11,16 @@ import { map } from 'rxjs/internal/operators/map'
  */
 const applyDefaultValuesToFetchBlobOptions = ({
     disableTimeout = false,
-    format = HighlightResponseFormat.HTML_HIGHLIGHT,
     ...options
 }: FetchBlobOptions): Required<FetchBlobOptions> => ({
     ...options,
     disableTimeout,
-    format,
 })
 
 function fetchBlobCacheKey(options: FetchBlobOptions): string {
-    const { disableTimeout, format } = applyDefaultValuesToFetchBlobOptions(options)
+    const { disableTimeout } = applyDefaultValuesToFetchBlobOptions(options)
 
-    return `${makeRepoURI(options)}?disableTimeout=${disableTimeout}&=${format}`
+    return `${makeRepoURI(options)}?disableTimeout=${disableTimeout}`
 }
 
 interface FetchBlobOptions {
@@ -30,28 +28,51 @@ interface FetchBlobOptions {
     revision: string
     filePath: string
     disableTimeout?: boolean
-    format?: HighlightResponseFormat
 }
 
-export const fetchBlob = memoizeObservable((options: FetchBlobOptions): Observable<BlobFileFields | null> => {
-    const { repoName, revision, filePath, disableTimeout, format } = applyDefaultValuesToFetchBlobOptions(options)
-
-    // We only want to include HTML data if explicitly requested. We always
-    // include LSIF because this is used for languages that are configured
-    // to be processed with tree sitter (and is used when explicitly
-    // requested via JSON_SCIP).
-    const html = [HighlightResponseFormat.HTML_PLAINTEXT, HighlightResponseFormat.HTML_HIGHLIGHT].includes(format)
+export const fetchHighlight = memoizeObservable((options: FetchBlobOptions): Observable<BlobFileFields | null> => {
+    const { repoName, revision, filePath, disableTimeout } = applyDefaultValuesToFetchBlobOptions(options)
 
     return requestGraphQL<BlobResult, BlobVariables>(
         gql`
-            query Blob(
-                $repoName: String!
-                $revision: String!
-                $filePath: String!
-                $disableTimeout: Boolean!
-                $format: HighlightResponseFormat!
-                $html: Boolean!
-            ) {
+            query Highlight($repoName: String!, $revision: String!, $filePath: String!, $disableTimeout: Boolean!) {
+                repository(name: $repoName) {
+                    commit(rev: $revision) {
+                        file(path: $filePath) {
+                            ...BlobFileFields
+                        }
+                    }
+                }
+            }
+
+            fragment BlobFileFields on File2 {
+                __typename
+                highlight(disableTimeout: $disableTimeout, format: JSON_SCIP) {
+                    aborted
+                    lsif
+                }
+            }
+        `,
+        { repoName, revision, filePath, disableTimeout }
+    ).pipe(
+        map(dataOrThrowErrors),
+        map(data => {
+            if (!data.repository?.commit) {
+                throw new Error('Commit not found')
+            }
+
+            return data.repository.commit.file
+        })
+    )
+}, fetchBlobCacheKey)
+
+// FIXME: Query naming and type generation
+export const fetchBlobPlaintext = memoizeObservable((options: FetchBlobOptions): Observable<BlobFileFields | null> => {
+    const { repoName, revision, filePath } = applyDefaultValuesToFetchBlobOptions(options)
+
+    return requestGraphQL<BlobResult, BlobVariables>(
+        gql`
+            query Blob($repoName: String!, $revision: String!, $filePath: String!) {
                 repository(name: $repoName) {
                     commit(rev: $revision) {
                         file(path: $filePath) {
@@ -65,11 +86,6 @@ export const fetchBlob = memoizeObservable((options: FetchBlobOptions): Observab
                 __typename
                 content
                 richHTML
-                highlight(disableTimeout: $disableTimeout, format: $format) {
-                    aborted
-                    html @include(if: $html)
-                    lsif
-                }
                 ... on GitBlob {
                     lfs {
                         byteSize
@@ -81,7 +97,7 @@ export const fetchBlob = memoizeObservable((options: FetchBlobOptions): Observab
                 }
             }
         `,
-        { repoName, revision, filePath, disableTimeout, format, html }
+        { repoName, revision, filePath }
     ).pipe(
         map(dataOrThrowErrors),
         map(data => {
@@ -93,4 +109,3 @@ export const fetchBlob = memoizeObservable((options: FetchBlobOptions): Observab
         })
     )
 }, fetchBlobCacheKey)
-

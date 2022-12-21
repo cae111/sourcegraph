@@ -1,7 +1,7 @@
 <script lang="ts">
     import { browser } from '$app/environment'
 
-    import { EditorState } from '@codemirror/state'
+    import { Compartment, EditorState, StateEffect, type Extension } from '@codemirror/state'
 
     import { EditorView, lineNumbers } from '@codemirror/view'
     import { syntaxHighlight } from '@sourcegraph/web/src/repo/blob/codemirror/highlight'
@@ -9,13 +9,17 @@
     import '@sourcegraph/branded/src/global-styles/highlight.scss'
 
     export let blob: BlobFileFields
+    export let highlights: string
+
     let editor: EditorView
     let container: HTMLDivElement | null = null
+
+    const shCompartment = new Compartment()
 
     function createEditor(container: HTMLDivElement): EditorView {
         const extensions = [
             lineNumbers(),
-            syntaxHighlight.of({ content: blob.content, lsif: blob.highlight.lsif }),
+            shCompartment.of(configureSyntaxHighlighting(blob.content, highlights)),
             EditorView.theme({
                 '&': {
                     'min-height': 0,
@@ -45,27 +49,34 @@
         return view
     }
 
-    function e(): EditorView | null {
-        return editor
+    function configureSyntaxHighlighting(content: string, lsif: string): Extension {
+        return lsif ? syntaxHighlight.of({ content, lsif }) : []
     }
 
-    $: if (container) {
-        editor = createEditor(container)
+    function updateExtensions(effects: StateEffect<unknown>[]) {
+        if (editor) {
+            editor.dispatch({ effects })
+        }
     }
 
-    $: if (e() && e()?.state.sliceDoc() !== blob.content) {
-        const view = e()
-        view?.dispatch({
-            changes: { from: 0, to: view.state.doc.length, insert: blob.content },
+    $: updateExtensions([shCompartment.reconfigure(configureSyntaxHighlighting(blob.content, highlights))])
+
+    $: if (editor && editor?.state.sliceDoc() !== blob.content) {
+        editor.dispatch({
+            changes: { from: 0, to: editor.state.doc.length, insert: blob.content },
         })
+    }
+
+    $: if (container && !editor) {
+        editor = createEditor(container)
     }
 </script>
 
 {#if browser}
-    <div bind:this={container} class="root test-query-input test-editor" data-editor="codemirror6" />
+    <div bind:this={container} class="root test-editor" data-editor="codemirror6" />
 {:else}
     <div class="root">
-        <pre>{value}</pre>
+        <pre>{blob.content}</pre>
     </div>
 {/if}
 

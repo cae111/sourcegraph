@@ -34,6 +34,7 @@
 <style lang="scss">
     .root {
         padding: 1rem;
+        overflow: auto;
     }
 
     .header {

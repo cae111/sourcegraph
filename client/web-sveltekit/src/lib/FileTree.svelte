@@ -14,11 +14,7 @@
 <ul>
     {#each entries as entry}
         <li class:active={entry.name === activeEntry}>
-            <a
-                data-sveltekit-preload-data={entry.isDirectory ? 'hover' : 'tap'}
-                data-sveltekit-preload-code="hover"
-                href={entry.url}
-            >
+            <a href={entry.url}>
                 <span>
                     <Icon svgPath={entry.isDirectory ? mdiFolderOutline : mdiFileDocumentOutline} inline />
                 </span>
