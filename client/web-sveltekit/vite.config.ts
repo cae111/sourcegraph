@@ -1,5 +1,5 @@
 import { sveltekit } from '@sveltejs/kit/vite'
-import { resolve } from 'path'
+import { resolve, join } from 'path'
 import type { UserConfig } from 'vite'
 import { splitVendorChunkPlugin } from 'vite'
 
@@ -7,6 +7,7 @@ const config: UserConfig = {
     plugins: [sveltekit()],
     define: {
         'process.platform': '"browser"',
+        'process.env': '{}',
     },
     css: {
         preprocessorOptions: {
@@ -22,6 +23,11 @@ const config: UserConfig = {
                 changeOrigin: true,
                 secure: false,
             },
+        },
+    },
+    resolve: {
+        alias: {
+            wildcard: join(__dirname, '../wildcard/'),
         },
     },
 }

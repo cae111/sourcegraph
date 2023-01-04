@@ -4,10 +4,10 @@
 
     import type { MatchGroup } from '@sourcegraph/shared/src/components/ranking/PerFileResultRanking'
     import type { ContentMatch } from '@sourcegraph/shared/src/search/stream'
-    import { HighlightResponseFormat, type HighlightLineRange } from '@sourcegraph/search'
     import type { Observable } from 'rxjs'
     import { map } from 'rxjs/operators/index'
     import CodeExcerpt from './CodeExcerpt.svelte'
+    import { HighlightResponseFormat, type HighlightLineRange } from '@sourcegraph/shared/src/graphql-operations'
 
     export let result: ContentMatch
     export let grouped: MatchGroup[]

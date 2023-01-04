@@ -6,22 +6,36 @@
 
     export let treeOrError: TreeFields | ErrorLike | null
     export let activeEntry: string
+    export let commitData: string | null = null
+    import VirtualList from '@sveltejs/svelte-virtual-list'
+
+    function scrollIntoView(node: HTMLElement, scroll: boolean) {
+        if (scroll) {
+            console.log(scroll, node)
+            node.scrollIntoView()
+        }
+    }
 
     $: entries = !isErrorLike(treeOrError) && treeOrError ? treeOrError.entries : []
 </script>
 
-<h3>Files</h3>
+<slot name="title">
+    <h3>Files</h3>
+</slot>
 <ul>
-    {#each entries as entry}
-        <li class:active={entry.name === activeEntry}>
+    <VirtualList items={entries} let:item={entry}>
+        <li class:active={entry.name === activeEntry} use:scrollIntoView={entry.name === 'activeEntry'}>
             <a href={entry.url}>
                 <span>
                     <Icon svgPath={entry.isDirectory ? mdiFolderOutline : mdiFileDocumentOutline} inline />
                 </span>
                 {entry.name}
             </a>
+            {#if commitData}
+                <span class="ml-5">{commitData}</span>
+            {/if}
         </li>
-    {/each}
+    </VirtualList>
 </ul>
 
 <style lang="scss">
@@ -32,7 +46,10 @@
         margin: 0;
         overflow: auto;
         min-height: 0;
-        background-color: var(--body-bg);
+    }
+
+    li {
+        display: flex;
     }
 
     a {

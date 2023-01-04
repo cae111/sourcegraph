@@ -1,9 +1,11 @@
 <script lang="ts">
     import { page } from '$app/stores'
     import logo from '$lib/images/sourcegraph-mark.svg'
-    import { authenticatedUser } from '$lib/stores'
     import UserAvatar from '$lib/UserAvatar.svelte'
     import { mdiBookOutline, mdiChartBar, mdiMagnify } from '@mdi/js'
+    import type { AuthenticatedUser } from '@sourcegraph/shared/src/auth'
+
+    export let authenticatedUser: AuthenticatedUser | null | undefined
 </script>
 
 <header>
@@ -90,8 +92,8 @@
         </ul>
     </nav>
     <div class="user">
-        {#if $authenticatedUser}
-            <UserAvatar user={$authenticatedUser} />
+        {#if authenticatedUser}
+            <UserAvatar user={authenticatedUser} />
             <a href="/-/sign-out" data-sveltekit-reload>Sign out</a>
         {:else}
             <a href="/sign-in" data-sveltekit-reload>Sign in</a>

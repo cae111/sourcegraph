@@ -1,38 +1,78 @@
 <script lang="ts">
-    import { enhance } from '$app/forms'
-    import { goto, invalidate } from '$app/navigation'
+    import { invalidate } from '$app/navigation'
     import Icon from '$lib/Icon.svelte'
-    import { mdiMagnify } from '@mdi/js'
+    import Tooltip from '$lib/Tooltip.svelte'
+    import { mdiCodeBrackets, mdiFormatLetterCase, mdiMagnify, mdiRegex } from '@mdi/js'
+    import { SearchPatternType } from '@sourcegraph/shared/src/graphql-operations'
 
-    import type { QueryState, SearchPatternType } from '@sourcegraph/search'
     import CodeMirrorQueryInput from './CodeMirrorQueryInput.svelte'
+    import { queryStateStore, submitSearch } from './state'
 
-    export let queryState: QueryState
+    export let queryState: ReturnType<typeof queryStateStore>
     export let patternType: SearchPatternType
+    export let selectedSearchContext: string
+    export let autoFocus = false
 
-    let form: HTMLFormElement | null = null
+    $: regularExpressionEnabled = $queryState.patternType === SearchPatternType.regexp
+    $: structuralEnabled = $queryState.patternType === SearchPatternType.structural
 
-    $: fullQuery = queryState.query
+    function setOrUnsetPatternType(patternType: SearchPatternType): void {
+        queryState.setPatternType(currentPatternType =>
+            currentPatternType === patternType ? SearchPatternType.standard : patternType
+        )
+    }
 
     async function handleSubmit(event: Event) {
         event.preventDefault()
-        const url = `/search?q=${fullQuery}`
-        await invalidate(`query:${fullQuery}`)
-        // TODO: Replace URL if it's the same query
-        await goto(url)
+        const currentQueryState = $queryState
+        await invalidate(`query:${$queryState.query}--${$queryState.caseSensitive}`)
+        submitSearch(currentQueryState)
     }
 </script>
 
-<form class="search-box" bind:this={form} action="/search" method="get" on:submit={handleSubmit}>
-    <input class="hidden" value={fullQuery} name="q" />
+<form class="search-box" action="/search" method="get" on:submit={handleSubmit}>
+    <input class="hidden" value={$queryState.query} name="q" />
+    <span class="context"><span class="search-filter-keyword">context:</span><span>{selectedSearchContext}</span></span>
+    <span class="divider" />
     <CodeMirrorQueryInput
+        {autoFocus}
         placeholder="Search for code or files"
-        {queryState}
-        on:change
+        queryState={$queryState}
+        on:change={event => queryState.setQuery(event.detail.query)}
         on:submit={handleSubmit}
         {patternType}
     />
-    <button>
+    <Tooltip tooltip={`${$queryState.caseSensitive ? 'Disable' : 'Enable'} case sensitivity`}>
+        <button
+            class="toggle"
+            type="button"
+            class:active={$queryState.caseSensitive}
+            on:click={() => queryState.setCaseSensitive(caseSensitive => !caseSensitive)}
+        >
+            <Icon svgPath={mdiFormatLetterCase} inline />
+        </button>
+    </Tooltip>
+    <Tooltip tooltip={`${regularExpressionEnabled ? 'Disable' : 'Enable'} regular expression`}>
+        <button
+            class="toggle"
+            type="button"
+            class:active={regularExpressionEnabled}
+            on:click={() => setOrUnsetPatternType(SearchPatternType.regexp)}
+        >
+            <Icon svgPath={mdiRegex} inline />
+        </button>
+    </Tooltip>
+    <Tooltip tooltip={`${structuralEnabled ? 'Disable' : 'Enable'} structural search`}>
+        <button
+            class="toggle"
+            type="button"
+            class:active={structuralEnabled}
+            on:click={() => setOrUnsetPatternType(SearchPatternType.structural)}
+        >
+            <Icon svgPath={mdiCodeBrackets} inline />
+        </button>
+    </Tooltip>
+    <button class="submit">
         <Icon ariaLabel="search" svgPath={mdiMagnify} inline />
     </button>
 </form>
@@ -59,7 +99,36 @@
         display: none;
     }
 
-    button {
+    .context {
+        font-family: var(--code-font-family);
+        font-size: 0.75rem;
+    }
+
+    button.toggle {
+        width: 1.5rem;
+        height: 1.5rem;
+        padding: 0;
+        margin: 0;
+        border: 0;
+        background-color: transparent;
+        cursor: pointer;
+        border-radius: var(--border-radius);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &.active {
+            background-color: var(--primary);
+            color: var(--light-text);
+        }
+
+        :global(svg) {
+            transform: scale(1.172);
+        }
+    }
+
+    button.submit {
+        margin-left: 1rem;
         padding: 0.5rem 1rem;
         border-top-right-radius: 5px;
         border-bottom-right-radius: 5px;
@@ -71,5 +140,12 @@
         &:hover {
             background-color: var(--primary-3);
         }
+    }
+
+    .divider {
+        width: 1px;
+        height: 1rem;
+        background-color: var(--border-color-2);
+        margin: 0 0.5rem;
     }
 </style>

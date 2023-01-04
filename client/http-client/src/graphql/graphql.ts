@@ -1,7 +1,7 @@
 import { GraphQLError } from 'graphql'
 import { trimEnd } from 'lodash'
 import { Observable } from 'rxjs'
-import { fromFetch } from 'rxjs/fetch'
+import { fromFetch } from 'rxjs/fetch/index'
 import { Omit } from 'utility-types'
 
 import { createAggregateError } from '@sourcegraph/common'

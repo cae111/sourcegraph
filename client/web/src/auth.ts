@@ -1,5 +1,5 @@
 import { Observable, ReplaySubject } from 'rxjs'
-import { catchError, map, mergeMap, tap } from 'rxjs/operators'
+import { catchError, map, mergeMap, tap } from 'rxjs/operators/index'
 
 import { logger } from '@sourcegraph/common'
 import { dataOrThrowErrors } from '@sourcegraph/http-client'

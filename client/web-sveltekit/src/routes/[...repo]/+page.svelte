@@ -15,7 +15,11 @@
 </script>
 
 <section>
-    <div class="sidebar"><FileTree activeEntry="" treeOrError={$treeOrError} /></div>
+    <div class="sidebar">
+        {#if !$treeOrError.loading && $treeOrError.data}
+            <FileTree activeEntry="" treeOrError={$treeOrError.data} />
+        {/if}
+    </div>
     <div class="content">
         <h1><Icon svgPath={mdiSourceRepository} /> {data.repoName}</h1>
         {#if !isErrorLike(data.resolvedRevision)}
@@ -29,10 +33,10 @@
             >
         </p>
 
-        {#if $treeOrError && !isErrorLike($treeOrError)}
+        {#if !$treeOrError.loading && $treeOrError.data && !isErrorLike($treeOrError.data)}
             <h3>Files and directories</h3>
             <ul class="files">
-                {#each $treeOrError.entries as entry}
+                {#each $treeOrError.data.entries as entry}
                     <li>
                         <a
                             data-sveltekit-preload-data={entry.isDirectory ? 'hover' : 'tap'}
@@ -48,12 +52,12 @@
 
         <h3 class="mt-3">Changes</h3>
         <ul class="commits">
-            {#if $commits}
-                {#each $commits as commit (commit.url)}
+            {#if $commits.loading}
+                Loading...
+            {:else if $commits.data}
+                {#each $commits.data as commit (commit.url)}
                     <li><Commit {commit} /></li>
                 {/each}
-            {:else}
-                Loading...
             {/if}
         </ul>
     </div>

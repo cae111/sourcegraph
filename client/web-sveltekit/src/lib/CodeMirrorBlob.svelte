@@ -10,20 +10,24 @@
 
     export let blob: BlobFileFields
     export let highlights: string
+    export let wrapLines: boolean = false
 
     let editor: EditorView
     let container: HTMLDivElement | null = null
 
     const shCompartment = new Compartment()
+    const miscSettingsCompartment = new Compartment()
 
     function createEditor(container: HTMLDivElement): EditorView {
         const extensions = [
             lineNumbers(),
+            miscSettingsCompartment.of(configureMiscSettings({ wrapLines })),
             shCompartment.of(configureSyntaxHighlighting(blob.content, highlights)),
             EditorView.theme({
                 '&': {
                     'min-height': 0,
                     color: 'var(--color-code)',
+                    flex: 1,
                 },
                 '.cm-scroller': {
                     overflow: 'auto',
@@ -31,13 +35,13 @@
                     'font-size': 'var(--code-font-size)',
                 },
                 '.cm-gutters': {
-                    'background-color': 'var(--bg-code)',
+                    'background-color': 'var(--code-bg)',
                     border: 'none',
                     color: 'var(--line-number-color)',
-                    'padding-right': '1rem',
                 },
                 '.cm-line': {
                     'line-height': '1rem',
+                    'padding-left': '1rem',
                 },
             }),
         ]
@@ -53,6 +57,10 @@
         return lsif ? syntaxHighlight.of({ content, lsif }) : []
     }
 
+    function configureMiscSettings({ wrapLines }: { wrapLines: boolean }): Extension {
+        return [wrapLines ? EditorView.lineWrapping : []]
+    }
+
     function updateExtensions(effects: StateEffect<unknown>[]) {
         if (editor) {
             editor.dispatch({ effects })
@@ -60,6 +68,7 @@
     }
 
     $: updateExtensions([shCompartment.reconfigure(configureSyntaxHighlighting(blob.content, highlights))])
+    $: updateExtensions([miscSettingsCompartment.reconfigure(configureMiscSettings({ wrapLines }))])
 
     $: if (editor && editor?.state.sliceDoc() !== blob.content) {
         editor.dispatch({

@@ -1,8 +1,6 @@
 <script lang="ts">
-	import { displayRepoName, splitPath } from "$lib/shared/repo";
-	import { getFileMatchUrl, getRepoMatchLabel, getRepoMatchUrl, getRepositoryUrl, type ContentMatch, type RepositoryMatch } from "@sourcegraph/shared/src/search/stream";
-	import SearchResult from "./SearchResult.svelte";
-
+    import { getRepoMatchLabel, getRepoMatchUrl, type RepositoryMatch } from '@sourcegraph/shared/src/search/stream'
+    import SearchResult from './SearchResult.svelte'
 
     export let result: RepositoryMatch
 

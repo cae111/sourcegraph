@@ -11,13 +11,15 @@
     <div>
         <h2>View commits from this repsitory</h2>
         <h3>Changes</h3>
-        <ul>
-            {#if $commits}
-                {#each $commits as commit (commit.url)}
+        {#if $commits.loading}
+            Loading...
+        {:else if $commits.data}
+            <ul>
+                {#each $commits.data as commit (commit.url)}
                     <li><Commit {commit} /></li>
                 {/each}
-            {/if}
-        </ul>
+            </ul>
+        {/if}
     </div>
 </section>
 
@@ -32,6 +34,7 @@
 
     section {
         overflow: auto;
+        margin-top: 1rem;
     }
 
     div {

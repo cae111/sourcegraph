@@ -1,6 +1,5 @@
 <script context="module" lang="ts">
     interface Cache {
-        scrollPosition: number
         count: number
         expanded: Set<SearchMatch>
     }
@@ -12,41 +11,45 @@
 
 <script lang="ts">
     import type { AggregateStreamingSearchResults, SearchMatch } from '@sourcegraph/shared/src/search/stream'
-    import { SearchPatternType } from '@sourcegraph/search'
-    import type { QueryState } from '@sourcegraph/search'
     import SearchBox from '$lib/search/SearchBox.svelte'
     import type { Observable } from 'rxjs'
     import FileSearchResult from './FileSearchResult.svelte'
     import RepoSearchResult from './RepoSearchResult.svelte'
     import { beforeNavigate } from '$app/navigation'
-    import VirtualList from '$lib/VirtualList.svelte'
-    import { writable } from 'svelte/store'
-    import { setContext } from 'svelte'
+    import { setContext, tick } from 'svelte'
+    import { SearchPatternType } from '@sourcegraph/shared/src/schema'
+    import { observeIntersection } from '$lib/intersection-observer'
+    import Section from './SidebarSection.svelte'
+    import { preserveScrollPosition } from '$lib/app'
+    import LoadingSpinner from '$lib/LoadingSpinner.svelte'
+    import { queryStateStore, submitSearch, type QueryOptions } from '$lib/search/state'
 
     export let query: string
     export let stream: Observable<AggregateStreamingSearchResults | undefined>
+    export let queryOptions: QueryOptions
 
     let patternType: SearchPatternType = SearchPatternType.literal
-    let resultContainer = writable<HTMLElement | null>(null)
-    let queryState: QueryState
-
-    setContext('scroll-container', resultContainer)
-
-    $: queryState = {
-        query,
-    }
+    let resultContainer: HTMLElement | null = null
+    $: queryState = queryStateStore({ ...queryOptions, query })
 
     $: loading = $stream && !$stream.progress.done
     $: results = $stream && $stream.results
+    $: filters = $stream && $stream.filters
+    $: langFilters = filters?.filter(filter => filter.kind === 'lang')
 
     // Logic for maintaining list state (scroll position, rendered items, open
     // items) for backwards navigation.
     $: cacheEntry = cache.get(query)
     $: count = cacheEntry?.count ?? DEFAULT_INITIAL_ITEMS_TO_SHOW
-    $: scrollPosition = cacheEntry?.scrollPosition ?? 0
+    $: resultsToShow = results ? results.slice(0, count) : null
     $: expandedSet = cacheEntry?.expanded || new Set<SearchMatch>()
-    $: if ($resultContainer) {
-        $resultContainer.scrollTop = scrollPosition
+    let scrollTop: number = 0
+    preserveScrollPosition(
+        position => (scrollTop = position ?? 0),
+        () => resultContainer?.scrollTop
+    )
+    $: if (resultContainer) {
+        resultContainer.scrollTop = scrollTop ?? 0
     }
 
     setContext('search-results', {
@@ -62,7 +65,7 @@
         },
     })
     beforeNavigate(() => {
-        cache.set(query, { count, scrollPosition: $resultContainer?.scrollTop ?? 0, expanded: expandedSet })
+        cache.set(query, { count, expanded: expandedSet })
     })
 
     $: matchCount = $stream ? $stream.progress.matchCount + ($stream.progress.skipped.length > 0 ? '+' : '') : ''
@@ -72,41 +75,51 @@
             count += INCREMENTAL_ITEMS_TO_SHOW
         }
     }
+
+    async function updateQuery(event: MouseEvent) {
+        queryState.setQuery(query => query + ' ' + (event.currentTarget as HTMLElement).dataset.value)
+        await tick()
+        submitSearch($queryState)
+    }
 </script>
 
 <section>
     <div class="search">
-        <SearchBox {queryState} on:change={event => (queryState = event.detail)} {patternType} />
+        <SearchBox {queryState} {patternType} selectedSearchContext={queryOptions.searchContext} />
     </div>
 
-    <div class="results" bind:this={$resultContainer}>
+    <div class="results" bind:this={resultContainer}>
         <div class="scroll-container">
             {#if !$stream || loading}
-                <div>Loading...</div>
-            {/if}
-
-            {#if !loading && results}
-                {#if matchCount}
-                    <div>
-                        {matchCount} results in {$stream?.progress.durationMs}ms
-                    </div>
-                {/if}
-                <VirtualList
-                    as="ol"
-                    scrollParent={$resultContainer}
-                    {count}
-                    items={results}
-                    let:item
-                    on:intersecting={loadMore}
-                >
-                    <li>
-                        {#if item.type === 'content'}
-                            <FileSearchResult result={item} />
-                        {:else if item.type === 'repo'}
-                            <RepoSearchResult result={item} />
+                <div class="spinner">
+                    <LoadingSpinner />
+                </div>
+            {:else if !loading && resultsToShow}
+                <div class="main">
+                    <aside class="stats mb-2">
+                        {#if matchCount}
+                            {matchCount} results in {($stream?.progress.durationMs / 1000).toFixed(2)}s
                         {/if}
-                    </li>
-                </VirtualList>
+                    </aside>
+                    <ol>
+                        {#each resultsToShow as result}
+                            <li>
+                                {#if result.type === 'content'}
+                                    <FileSearchResult {result} />
+                                {:else if result.type === 'repo'}
+                                    <RepoSearchResult {result} />
+                                {/if}
+                            </li>
+                        {/each}
+                        <div use:observeIntersection on:intersecting={loadMore} />
+                    </ol>
+                </div>
+                <aside class="sidebar">
+                    <h4>Filters</h4>
+                    {#if langFilters && langFilters.length > 1}
+                        <Section items={langFilters} title="Languages" on:click={updateQuery} />
+                    {/if}
+                </aside>
             {/if}
         </div>
     </div>
@@ -117,7 +130,7 @@
         border-bottom: 1px solid var(--border-color);
         display: flex;
         align-self: stretch;
-        padding: 1rem;
+        padding: 0.5rem 1rem;
     }
 
     section {
@@ -139,6 +152,43 @@
 
         .scroll-container {
             padding: 1rem;
+            display: flex;
+
+            .spinner {
+                flex: 1;
+                display: flex;
+                justify-content: center;
+            }
+        }
+    }
+
+    ol {
+        padding: 0;
+        margin: 0;
+        list-style: none;
+    }
+
+    .main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .sidebar {
+        margin-left: 1rem;
+        position: sticky;
+        top: 1rem;
+        align-self: flex-start;
+        width: 15.5rem;
+        flex-shrink: 0;
+        background-color: var(--sidebar-bg);
+        border: 1px solid var(--sidebar-border-color);
+        padding: 0.75rem;
+        border-radius: var(--border-radius);
+
+        h4 {
+            margin: -0.25rem -0.75rem 0.75rem;
+            padding: 0 0.75rem 0.5rem;
+            border-bottom: 1px solid var(--sidebar-border-color);
         }
     }
 </style>

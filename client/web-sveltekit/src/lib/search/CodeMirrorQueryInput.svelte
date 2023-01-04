@@ -2,37 +2,75 @@
     import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
     import { createEventDispatcher } from 'svelte'
 
-    import { EditorState, Prec, type Extension } from '@codemirror/state'
+    import { Compartment, EditorState, Prec, type Extension } from '@codemirror/state'
     import { EditorView, keymap, placeholder as placeholderExtension } from '@codemirror/view'
-    import { QueryChangeSource, type QueryState } from '@sourcegraph/search'
     import type { SearchPatternType } from '@sourcegraph/shared/src/graphql-operations'
-    import { parseInputAsQuery } from './codemirror/parsedQuery'
     import { browser } from '$app/environment'
-    import { querySyntaxHighlighting, singleLine } from './codemirror'
+    import { createDefaultSuggestions, singleLine } from '@sourcegraph/search-ui/src/input/codemirror'
+    import { fetchStreamSuggestions } from '@sourcegraph/shared/src/search/suggestions'
+    import { goto } from '$app/navigation'
+    import { parseInputAsQuery } from '@sourcegraph/search-ui/src/input/codemirror/parsedQuery'
+    import { querySyntaxHighlighting } from '@sourcegraph/search-ui/src/input/codemirror/syntax-highlighting'
+    import { QueryChangeSource, type QueryState } from '@sourcegraph/search/src/helpers'
 
     export let queryState: QueryState
     export let patternType: SearchPatternType
     export let interpretComments: boolean = false
     export let placeholder: string = ''
+    export let autoFocus: boolean = false
 
     const dispatch = createEventDispatcher<{ change: QueryState; submit: void }>()
     let container: HTMLDivElement | null = null
     let editor: EditorView | null = null
 
-    let dynamicExtensions: Extension[] = []
+    let dynamicExtensions = new Compartment()
 
-    if (browser && placeholder) {
-        // Passing a DOM element instead of a string makes the CodeMirror
-        // extension set aria-hidden="true" on the placeholder, which is
-        // what we want.
-        const element = document.createElement('span')
-        element.append(document.createTextNode(placeholder))
-        dynamicExtensions.push(placeholderExtension(element))
+    interface ExtensionConfig {
+        patternType: SearchPatternType
+        interpretComments: boolean
+        placeholder: string
+    }
+
+    function configureExtensions(config: ExtensionConfig) {
+        if (!browser) {
+            return []
+        }
+        const extensions = [
+            parseInputAsQuery({ patternType: config.patternType, interpretComments: config.interpretComments }),
+            createDefaultSuggestions({
+                fetchSuggestions: query => fetchStreamSuggestions(query),
+                globbing: false,
+                isSourcegraphDotCom: false,
+                history: {
+                    push(url) {
+                        goto(url.toString())
+                    },
+                },
+                applyOnEnter: true,
+            }),
+        ]
+
+        if (config.placeholder) {
+            // Passing a DOM element instead of a string makes the CodeMirror
+            // extension set aria-hidden="true" on the placeholder, which is
+            // what we want.
+            const element = document.createElement('span')
+            element.append(document.createTextNode(placeholder))
+            extensions.push(placeholderExtension(element))
+        }
+
+        return extensions
+    }
+
+    function updateExtensions(config: ExtensionConfig) {
+        if (editor) {
+            editor.dispatch({ effects: dynamicExtensions.reconfigure(configureExtensions(config)) })
+        }
     }
 
     function createEditor(container: HTMLDivElement): EditorView {
         const extensions = [
-            dynamicExtensions,
+            dynamicExtensions.of(configureExtensions({ interpretComments, patternType, placeholder })),
             Prec.high(
                 keymap.of([
                     {
@@ -58,7 +96,6 @@
             keymap.of(defaultKeymap),
             history(),
             // themeExtension.of(EditorView.darkTheme.of(isLightTheme === false)),
-            parseInputAsQuery({ patternType, interpretComments }),
             // queryDiagnostic(),
             // The precedence of these extensions needs to be decreased
             // explicitly, otherwise the diagnostic indicators will be
@@ -81,19 +118,19 @@
         return view
     }
 
-    function e(): EditorView | null {
-        return editor
-    }
-
-    $: if (container) {
-        editor = createEditor(container)
-    }
-
-    $: if (e() && e()?.state.sliceDoc() !== queryState.query) {
-        const view = e()
-        view?.dispatch({
-            changes: { from: 0, to: view.state.doc.length, insert: queryState.query },
+    $: if (editor && editor.state.sliceDoc() !== queryState.query) {
+        editor.dispatch({
+            changes: { from: 0, to: editor.state.doc.length, insert: queryState.query },
         })
+    }
+
+    $: updateExtensions({ placeholder, patternType, interpretComments })
+
+    $: if (container && !editor) {
+        editor = createEditor(container)
+        if (autoFocus) {
+            window.requestAnimationFrame(() => editor!.focus())
+        }
     }
 </script>
 

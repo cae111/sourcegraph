@@ -1,12 +1,5 @@
 <script lang="ts">
+    import { redirect } from '@sveltejs/kit'
+
+    redirect(300, '/search')
 </script>
-
-<svelte:head>
-    <title>Sourcegraph</title>
-    <meta name="description" content="Code search" />
-</svelte:head>
-
-<section>Sourcegraph</section>
-
-<style>
-</style>

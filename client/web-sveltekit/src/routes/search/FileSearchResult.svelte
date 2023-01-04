@@ -11,6 +11,7 @@
     import { mdiChevronDown, mdiChevronUp } from '@mdi/js'
     import { pluralize } from '@sourcegraph/common/src/util'
     import { getContext } from 'svelte'
+    import { resultToMatchItems } from '$lib/search/utils'
 
     export let result: ContentMatch
 
@@ -21,35 +22,7 @@
     $: repoName = result.repository
     $: repoAtRevisionURL = getRepositoryUrl(result.repository, result.branches)
     $: [fileBase, fileName] = splitPath(result.path)
-    let items: MatchItem[]
-    $: items =
-        result.type === 'content'
-            ? result.chunkMatches?.map(match => ({
-                  highlightRanges: match.ranges.map(range => ({
-                      startLine: range.start.line,
-                      startCharacter: range.start.column,
-                      endLine: range.end.line,
-                      endCharacter: range.end.column,
-                  })),
-                  content: match.content,
-                  startLine: match.contentStart.line,
-                  endLine: match.ranges[match.ranges.length - 1].end.line,
-                  aggregableBadges: match.aggregableBadges,
-              })) ||
-              result.lineMatches?.map(match => ({
-                  highlightRanges: match.offsetAndLengths.map(offsetAndLength => ({
-                      startLine: match.lineNumber,
-                      startCharacter: offsetAndLength[0],
-                      endLine: match.lineNumber,
-                      endCharacter: offsetAndLength[0] + offsetAndLength[1],
-                  })),
-                  content: match.line,
-                  startLine: match.lineNumber,
-                  endLine: match.lineNumber,
-                  aggregableBadges: match.aggregableBadges,
-              })) ||
-              []
-            : []
+    $: items = resultToMatchItems(result)
     $: expandedMatchGroups = ranking.expandedResults(items, context)
     $: collapsedMatchGroups = ranking.collapsedResults(items, context)
 
@@ -59,10 +32,11 @@
 
     $: highlightRangesCount = items.reduce(sumHighlightRanges, 0)
     $: collapsedHighlightRangesCount = collapsedMatchGroups.matches.reduce(sumHighlightRanges, 0)
-
     $: hiddenMatchesCount = highlightRangesCount - collapsedHighlightRangesCount
+
     const searchResultContext = getContext('search-results')
     let expanded: boolean = searchResultContext?.isExpanded(result)
+    $: searchResultContext.setExpanded(result, expanded)
     $: expandButtonText = expanded
         ? 'Show less'
         : `Show ${hiddenMatchesCount} more ${pluralize('match', hiddenMatchesCount, 'matches')}`
@@ -75,7 +49,6 @@
             root.scrollIntoView({ block: 'nearest', behavior: reducedMotion ? 'auto' : 'smooth' })
         }, 0)
     }
-    $: searchResultContext.setExpanded(result, expanded)
 </script>
 
 <SearchResult {result}>
@@ -98,7 +71,7 @@
             }}
             class:expanded
         >
-            <Icon svgPath={expanded ? mdiChevronUp : mdiChevronDown} ariaLabel="" />
+            <Icon svgPath={expanded ? mdiChevronUp : mdiChevronDown} ariaLabel="" inline />
             <span>{expandButtonText}</span>
         </button>
     {/if}
@@ -111,8 +84,7 @@
         border: none;
         padding: 0.25rem 0.5rem;
         background-color: var(--border-color);
-        border-bottom-left-radius: var(--border-radius);
-        border-bottom-right-radius: var(--border-radius);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
         color: var(--collapse-results-color);
         cursor: pointer;
 

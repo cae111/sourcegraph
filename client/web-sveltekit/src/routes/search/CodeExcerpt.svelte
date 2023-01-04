@@ -6,8 +6,6 @@
     import '@sourcegraph/branded/src/global-styles/highlight.scss'
     import type { MatchGroupMatch } from '@sourcegraph/shared/src/components/ranking/PerFileResultRanking'
     import { observeIntersection } from '$lib/intersection-observer'
-    import { getContext } from 'svelte'
-    import type { Writable } from 'svelte/store'
 
     export let startLine: number
     export let endLine: number
@@ -16,8 +14,6 @@
     export let matches: MatchGroupMatch[]
 
     let blobLinesOrError: string[] | Error | undefined
-
-    let scrollParent = getContext<Writable<HTMLElement | null>>('scroll-container')
 
     function highlightRanges(node: HTMLElement, matches: MatchGroupMatch[]) {
         const visibleRows = node.querySelectorAll<HTMLTableRowElement>('tr')
@@ -60,7 +56,7 @@
     }
 </script>
 
-<code use:observeIntersection={$scrollParent} on:intersecting={onIntersection}>
+<code use:observeIntersection on:intersecting={onIntersection}>
     {#if blobLinesOrError && !isErrorLike(blobLinesOrError)}
         {#key blobLinesOrError}
             <table use:highlightRanges={matches}>

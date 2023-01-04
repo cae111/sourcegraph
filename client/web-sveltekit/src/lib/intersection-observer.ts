@@ -9,23 +9,25 @@ function createObserver(root: HTMLElement | null) {
 
 const globalObserver = createObserver(null)
 
-export function observeIntersection(node: HTMLElement, root?: HTMLElement | null) {
+export function observeIntersection(node: HTMLElement) {
     let observer = globalObserver
 
-    if (root) {
-        observer = new IntersectionObserver(callback, { root, rootMargin: '0px 0px 500px 0px' })
+    let scrollAncestor: HTMLElement | null = node.parentElement
+    while (scrollAncestor) {
+        const overflow = getComputedStyle(scrollAncestor).overflowY
+        if (overflow === 'auto' || overflow === 'scroll') {
+            break
+        }
+        scrollAncestor = scrollAncestor.parentElement
+    }
+
+    if (scrollAncestor && scrollAncestor !== document.getRootNode()) {
+        observer = new IntersectionObserver(callback, { root: scrollAncestor, rootMargin: '0px 0px 500px 0px' })
     }
 
     observer.observe(node)
 
     return {
-        update(newRoot: HTMLElement) {
-            if (root !== newRoot) {
-                observer.unobserve(node)
-            }
-            observer = createObserver(newRoot)
-            observer.observe(node)
-        },
         destroy() {
             observer.unobserve(node)
         },

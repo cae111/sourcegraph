@@ -12,14 +12,14 @@ import { map } from 'rxjs/operators/index'
 export const load: PageLoad = ({ params, parent }) => {
     const { repoName, revision } = parseRepoRevision(params.repo)
 
-    const treeEntries = psub(
+    const sidebarEntries = psub(
         parent().then(({ resolvedRevision, revision, repoName }) =>
             !isErrorLike(resolvedRevision)
                 ? fetchTreeEntries({
                       repoName: repoName,
                       commitID: resolvedRevision.commitID,
                       revision: revision ?? '',
-                      filePath: params.type === 'blob' ? dirname(params.path) : params.path,
+                      filePath: dirname(params.path),
                       first: 2500,
                       requestGraphQL: options => requestGraphQL(options.request, options.variables),
                   })
@@ -50,7 +50,26 @@ export const load: PageLoad = ({ params, parent }) => {
                               .toPromise()
                       )
                     : null,
-            treeEntries,
+            sidebarEntries,
+            treeEntries:
+                params.type === 'tree'
+                    ? psub(
+                          parent().then(({ resolvedRevision, revision, repoName }) =>
+                              !isErrorLike(resolvedRevision)
+                                  ? fetchTreeEntries({
+                                        repoName: repoName,
+                                        commitID: resolvedRevision.commitID,
+                                        revision: revision ?? '',
+                                        filePath: params.path,
+                                        first: 2500,
+                                        requestGraphQL: options => requestGraphQL(options.request, options.variables),
+                                    })
+                                        .pipe(catchError((error): [ErrorLike] => [asError(error)]))
+                                        .toPromise()
+                                  : null
+                          )
+                      )
+                    : null,
         },
     }
 }

@@ -1,15 +1,24 @@
 <script lang="ts">
     import logo from '$lib/images/sourcegraph-logo-light.svg'
     import SearchBox from '$lib/search/SearchBox.svelte'
-    import type { QueryState } from '@sourcegraph/search'
-    import { SearchPatternType } from '@sourcegraph/search'
+    import { queryStateStore } from '$lib/search/state'
+    import type { SearchPageContext } from '$lib/search/utils'
+    import { SearchPatternType } from '@sourcegraph/shared/src/graphql-operations'
+    import { setContext } from 'svelte'
 
-    let queryState: QueryState = { query: '' }
+    let queryState = queryStateStore()
+
+    setContext<SearchPageContext>('search-context', {
+        setQuery(newQuery) {
+            queryState.setQuery(newQuery)
+        },
+    })
 </script>
 
 <section>
     <img class="logo" src={logo} alt="Sourcegraph Logo" />
-    <SearchBox {queryState} on:change={event => (queryState = event.detail)} patternType={SearchPatternType.literal} />
+    <SearchBox autoFocus {queryState} patternType={SearchPatternType.literal} selectedSearchContext="global" />
+    <slot />
 </section>
 
 <style lang="scss">

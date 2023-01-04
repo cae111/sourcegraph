@@ -2,10 +2,16 @@
     import type { PageData } from './$types'
     import Commit from '$lib/Commit.svelte'
     import FileDiff from './FileDiff.svelte'
+    import { repoHasNewCommits } from '$lib/stores'
+    import { invalidate } from '$app/navigation'
 
     export let data: PageData
 
     $: ({ commit, diff } = data.prefetch)
+
+    if ($repoHasNewCommits) {
+        invalidate('repo:current')
+    }
 </script>
 
 {#if $commit}
