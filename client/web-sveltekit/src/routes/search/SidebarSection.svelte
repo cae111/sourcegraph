@@ -1,10 +1,10 @@
 <script lang="ts">
     import Icon from '$lib/Icon.svelte'
+    import type { SidebarFilter } from '$lib/search/utils'
     import Tooltip from '$lib/Tooltip.svelte'
     import { mdiChevronDown, mdiChevronUp } from '@mdi/js'
-    import type { Filter } from '@sourcegraph/shared/src/search/stream'
 
-    export let items: Filter[]
+    export let items: SidebarFilter[]
     export let title: string
 
     let open = true
@@ -19,11 +19,13 @@
     <ul>
         {#each items as item}
             <li>
-                <button class="item" on:click data-value={item.value}>
+                <button class="item" on:click data-value={item.value} data-run={item.runImmediately}>
                     <span class="label">{item.label}</span>
-                    <Tooltip tooltip="At least {item.count} results match this filter.">
-                        <span class="count">{item.count}</span>
-                    </Tooltip>
+                    {#if item.count !== undefined}
+                        <Tooltip tooltip="At least {item.count} results match this filter.">
+                            <span class="count">{item.count}</span>
+                        </Tooltip>
+                    {/if}
                 </button>
             </li>
         {/each}

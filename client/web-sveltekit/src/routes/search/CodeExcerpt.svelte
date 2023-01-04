@@ -1,7 +1,7 @@
 <script lang="ts">
     import { of, type Observable } from 'rxjs'
     import { catchError } from 'rxjs/operators/index'
-    import { asError, isDefined, isErrorLike, highlightNodeMultiline } from '@sourcegraph/common'
+    import { asError, isErrorLike, highlightNodeMultiline } from '@sourcegraph/common'
     import range from 'lodash/range'
     import '@sourcegraph/branded/src/global-styles/highlight.scss'
     import type { MatchGroupMatch } from '@sourcegraph/shared/src/components/ranking/PerFileResultRanking'
@@ -9,11 +9,11 @@
 
     export let startLine: number
     export let endLine: number
-    export let blobLines: string[] | undefined
     export let fetchHighlightedFileRangeLines: (startLine: number, endLine: number) => Observable<string[]>
-    export let matches: MatchGroupMatch[]
+    export let blobLines: string[] | undefined = undefined
+    export let matches: MatchGroupMatch[] = []
 
-    let blobLinesOrError: string[] | Error | undefined
+    let blobLinesOrError: string[] | Error | undefined = undefined
 
     function highlightRanges(node: HTMLElement, matches: MatchGroupMatch[]) {
         const visibleRows = node.querySelectorAll<HTMLTableRowElement>('tr')
@@ -83,7 +83,7 @@
         display: flex;
         align-items: center;
         padding: 0.125rem 0.375rem;
-        background-color: var(--code-bg);
+        background-color: var(--background-color, --code-bg);
         overflow-x: auto;
 
         font-family: var(--code-font-family);

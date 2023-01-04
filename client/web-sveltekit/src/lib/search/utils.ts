@@ -1,6 +1,15 @@
 import type { ContentMatch } from '@sourcegraph/shared/src/search/stream'
 import type { MatchItem } from '@sourcegraph/shared/src/components/ranking/PerFileResultRanking'
 
+export interface SidebarFilter {
+    value: string
+    label: string
+    count?: number
+    limitHit?: boolean
+    kind: 'file' | 'repo' | 'lang' | 'utility'
+    runImmediately?: boolean
+}
+
 /**
  * A context object provided on pages with the main search input to interact
  * with the main input.

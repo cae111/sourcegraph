@@ -23,6 +23,9 @@
     import { preserveScrollPosition } from '$lib/app'
     import LoadingSpinner from '$lib/LoadingSpinner.svelte'
     import { queryStateStore, submitSearch, type QueryOptions } from '$lib/search/state'
+    import { settings } from '$lib/stores'
+    import { searchTypes } from '$lib/search/sidebar'
+    import SymbolSearchResult from './SymbolSearchResult.svelte'
 
     export let query: string
     export let stream: Observable<AggregateStreamingSearchResults | undefined>
@@ -30,7 +33,7 @@
 
     let patternType: SearchPatternType = SearchPatternType.literal
     let resultContainer: HTMLElement | null = null
-    $: queryState = queryStateStore({ ...queryOptions, query })
+    $: queryState = queryStateStore({ ...queryOptions, query }, $settings)
 
     $: loading = $stream && !$stream.progress.done
     $: results = $stream && $stream.results
@@ -77,9 +80,13 @@
     }
 
     async function updateQuery(event: MouseEvent) {
-        queryState.setQuery(query => query + ' ' + (event.currentTarget as HTMLElement).dataset.value)
-        await tick()
-        submitSearch($queryState)
+        const element = event.currentTarget as HTMLElement
+        // TODO: Replace / update query; editor hints; etc
+        queryState.setQuery(query => query + ' ' + element.dataset.value)
+        if (element.dataset.run) {
+            await tick()
+            submitSearch($queryState)
+        }
     }
 </script>
 
@@ -108,6 +115,8 @@
                                     <FileSearchResult {result} />
                                 {:else if result.type === 'repo'}
                                     <RepoSearchResult {result} />
+                                {:else if result.type === 'symbol'}
+                                    <SymbolSearchResult {result} />
                                 {/if}
                             </li>
                         {/each}
@@ -116,6 +125,7 @@
                 </div>
                 <aside class="sidebar">
                     <h4>Filters</h4>
+                    <Section items={searchTypes} title="Search types" on:click={updateQuery} />
                     {#if langFilters && langFilters.length > 1}
                         <Section items={langFilters} title="Languages" on:click={updateQuery} />
                     {/if}

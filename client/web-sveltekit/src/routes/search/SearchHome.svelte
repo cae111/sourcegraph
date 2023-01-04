@@ -3,10 +3,13 @@
     import SearchBox from '$lib/search/SearchBox.svelte'
     import { queryStateStore } from '$lib/search/state'
     import type { SearchPageContext } from '$lib/search/utils'
+    import { settings } from '$lib/stores'
     import { SearchPatternType } from '@sourcegraph/shared/src/graphql-operations'
     import { setContext } from 'svelte'
 
-    let queryState = queryStateStore()
+    // TODO: Shared query store?
+    let queryState = queryStateStore({}, $settings)
+    $: queryState.setSettings($settings)
 
     setContext<SearchPageContext>('search-context', {
         setQuery(newQuery) {

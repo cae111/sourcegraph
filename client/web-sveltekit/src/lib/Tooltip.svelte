@@ -68,6 +68,15 @@
     }
 
     .tooltip-content {
+        --tooltip-font-size: 0.75rem; // 12px
+        --tooltip-line-height: 1.02rem; // 16.32px / 16px, per Figma
+        --tooltip-max-width: 256px;
+        --tooltip-color: var(--light-text);
+        --tooltip-border-radius: var(--border-radius);
+        --tooltip-padding-y: 0.25rem;
+        --tooltip-padding-x: 0.5rem;
+        --tooltip-margin: 0;
+
         isolation: isolate;
         font-size: var(--tooltip-font-size);
         line-height: var(--tooltip-line-height);

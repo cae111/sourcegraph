@@ -1,8 +1,10 @@
 <script lang="ts">
     import { invalidate } from '$app/navigation'
     import Icon from '$lib/Icon.svelte'
+    import Popover from '$lib/Popover.svelte'
     import Tooltip from '$lib/Tooltip.svelte'
-    import { mdiCodeBrackets, mdiFormatLetterCase, mdiMagnify, mdiRegex } from '@mdi/js'
+    import { mdiClose, mdiCodeBrackets, mdiFormatLetterCase, mdiLightningBolt, mdiMagnify, mdiRegex } from '@mdi/js'
+    import { SearchMode } from '@sourcegraph/search'
     import { SearchPatternType } from '@sourcegraph/shared/src/graphql-operations'
 
     import CodeMirrorQueryInput from './CodeMirrorQueryInput.svelte'
@@ -15,6 +17,7 @@
 
     $: regularExpressionEnabled = $queryState.patternType === SearchPatternType.regexp
     $: structuralEnabled = $queryState.patternType === SearchPatternType.structural
+    $: smartEnabled = $queryState.searchMode === SearchMode.SmartSearch
 
     function setOrUnsetPatternType(patternType: SearchPatternType): void {
         queryState.setPatternType(currentPatternType =>
@@ -44,7 +47,7 @@
     />
     <Tooltip tooltip={`${$queryState.caseSensitive ? 'Disable' : 'Enable'} case sensitivity`}>
         <button
-            class="toggle"
+            class="toggle icon"
             type="button"
             class:active={$queryState.caseSensitive}
             on:click={() => queryState.setCaseSensitive(caseSensitive => !caseSensitive)}
@@ -54,7 +57,7 @@
     </Tooltip>
     <Tooltip tooltip={`${regularExpressionEnabled ? 'Disable' : 'Enable'} regular expression`}>
         <button
-            class="toggle"
+            class="toggle icon"
             type="button"
             class:active={regularExpressionEnabled}
             on:click={() => setOrUnsetPatternType(SearchPatternType.regexp)}
@@ -64,7 +67,7 @@
     </Tooltip>
     <Tooltip tooltip={`${structuralEnabled ? 'Disable' : 'Enable'} structural search`}>
         <button
-            class="toggle"
+            class="toggle icon"
             type="button"
             class:active={structuralEnabled}
             on:click={() => setOrUnsetPatternType(SearchPatternType.structural)}
@@ -72,6 +75,65 @@
             <Icon svgPath={mdiCodeBrackets} inline />
         </button>
     </Tooltip>
+    <span class="divider" />
+    <Popover let:registerTrigger let:toggle>
+        <Tooltip tooltip="Smart search {smartEnabled ? 'enabled' : 'disabled'}">
+            <button
+                class="toggle icon"
+                type="button"
+                class:active={smartEnabled}
+                on:click={() => toggle()}
+                use:registerTrigger
+            >
+                <Icon svgPath={mdiLightningBolt} inline />
+            </button>
+        </Tooltip>
+        <div slot="content" class="popover-content">
+            {@const delayedClose = () => setTimeout(() => toggle(false), 100)}
+            <div class="d-flex align-items-center px-3 py-2">
+                <h4 class="m-0 mr-auto">SmartSearch</h4>
+                <button class="icon" type="button" on:click={() => toggle(false)}>
+                    <Icon svgPath={mdiClose} inline />
+                </button>
+            </div>
+            <div>
+                <label class="d-flex align-items-start">
+                    <input
+                        type="radio"
+                        name="mode"
+                        value="smart"
+                        checked={smartEnabled}
+                        on:click={() => {
+                            queryState.setMode(SearchMode.SmartSearch)
+                            delayedClose()
+                        }}
+                    />
+                    <span class="d-flex flex-column ml-1">
+                        <span>Enable</span>
+                        <small class="text-muted"
+                            >Suggest variations of your query to find more results that may relate.</small
+                        >
+                    </span>
+                </label>
+                <label class="d-flex align-items-start">
+                    <input
+                        type="radio"
+                        name="mode"
+                        value="precise"
+                        checked={!smartEnabled}
+                        on:click={() => {
+                            queryState.setMode(SearchMode.Precise)
+                            delayedClose()
+                        }}
+                    />
+                    <span class="d-flex flex-column ml-1">
+                        <span>Disable</span>
+                        <small class="text-muted">Only show results that previsely match your query.</small>
+                    </span>
+                </label>
+            </div>
+        </div>
+    </Popover>
     <button class="submit">
         <Icon ariaLabel="search" svgPath={mdiMagnify} inline />
     </button>
@@ -107,10 +169,6 @@
     button.toggle {
         width: 1.5rem;
         height: 1.5rem;
-        padding: 0;
-        margin: 0;
-        border: 0;
-        background-color: transparent;
         cursor: pointer;
         border-radius: var(--border-radius);
         display: flex;
@@ -147,5 +205,27 @@
         height: 1rem;
         background-color: var(--border-color-2);
         margin: 0 0.5rem;
+    }
+
+    button.icon {
+        padding: 0;
+        margin: 0;
+        border: 0;
+        background-color: transparent;
+        cursor: pointer;
+    }
+
+    .popover-content {
+        input {
+            margin-left: 0;
+        }
+
+        label {
+            max-width: 17rem;
+            display: flex;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-top: 1px solid var(--border-color);
+        }
     }
 </style>

@@ -1,41 +1,43 @@
-import { derived, readable, writable, type Readable, type Unsubscriber } from 'svelte/store'
-import { createPlatformContext } from '@sourcegraph/web/src/platform/context'
-import type { PlatformContext } from '@sourcegraph/shared/src/platform/context'
-import { authenticatedUser as authenticatedUserOG, type AuthenticatedUser } from '@sourcegraph/web/src/auth'
+import { derived, writable, type Readable } from 'svelte/store'
 import type { RepositoryFields } from '@sourcegraph/web/src/graphql-operations'
-import type { Settings } from '@sourcegraph/shared/src/settings/settings'
-import { Subscription } from 'rxjs'
-import { isErrorLike } from '@sourcegraph/common/src/errors/utils'
+import type { SettingsCascade } from '@sourcegraph/shared/src/settings/settings'
+import { getContext } from 'svelte'
+import type { AuthenticatedUser } from '@sourcegraph/shared/src/auth'
+import type { PlatformContext } from '@sourcegraph/shared/src/platform/context'
 
-export const platformContext = readable<PlatformContext | null>(null, set => set(createPlatformContext()))
-export const authenticatedUser = readable<AuthenticatedUser | null>(null, set => {
-    const subscription = authenticatedUserOG.subscribe(set)
-    return () => subscription.unsubscribe()
-})
+export interface SourcegraphContext {
+    settings: Readable<SettingsCascade['final'] | null>
+    user: Readable<AuthenticatedUser | null>
+    platformContext: Readable<PlatformContext | null>
+}
 
-// FIXME: This returns the previous (cached?) value first, which is not great if
-// the user signed out
-export const settings: Readable<Settings | null> = (platformContextStore => {
-    let unsubscribePlatform: Unsubscriber | null = null
-    let settingsSubscription: Subscription = new Subscription()
+export const KEY = '__sourcegraph__'
 
-    return readable<Settings | null>(null, set => {
-        if (!unsubscribePlatform) {
-            unsubscribePlatform = platformContextStore.subscribe($platformContext => {
-                settingsSubscription.add(
-                    $platformContext?.settings.subscribe($settings => {
-                        console.log($settings)
-                        set(isErrorLike($settings.final) ? null : $settings.final)
-                    })
-                )
-            })
-        }
-        return () => {
-            settingsSubscription.unsubscribe()
-            unsubscribePlatform?.()
-        }
-    })
-})(platformContext)
+function getStores() {
+    const { settings, user, platformContext } = getContext<SourcegraphContext>(KEY)
+    return { settings, user, platformContext }
+}
+
+export const user = {
+    subscribe(fn: (user: AuthenticatedUser | null) => void) {
+        const { user } = getStores()
+        return user.subscribe(fn)
+    },
+}
+
+export const settings = {
+    subscribe(fn: (settings: SettingsCascade['final'] | null) => void) {
+        const { settings } = getStores()
+        return settings.subscribe(fn)
+    },
+}
+
+export const platformContext = {
+    subscribe(fn: (platformContext: PlatformContext | null) => void) {
+        const { platformContext } = getStores()
+        return platformContext.subscribe(fn)
+    },
+}
 
 // Proof of concept for updating polling repo for updated information to
 // decide when to invalidate

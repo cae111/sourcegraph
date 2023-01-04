@@ -16,7 +16,7 @@
 
     const searchContext = getContext<SearchPageContext>('search-context')
     function handleClick() {
-        searchContext.setQuery(queryExample.query)
+        searchContext.setQuery(query => (query + ' ' + queryExample.query).trim())
     }
 </script>
 
