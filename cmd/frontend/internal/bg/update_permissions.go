@@ -25,7 +25,7 @@ func UpdatePermissions(ctx context.Context, logger log.Logger, db database.DB) {
 
 	pstore := tx.Permissions()
 
-	dbPerms, err := pstore.List(ctx)
+	dbPerms, err := pstore.List(ctx, database.PermissionListOpts{})
 	if err != nil {
 		scopedLog.Error("fetching permissions from database", log.Error(err))
 		return
