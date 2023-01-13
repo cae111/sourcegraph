@@ -38,6 +38,7 @@
             <a href="{data.repoURL}/-/commits"><Icon svgPath={mdiSourceCommit} inline /> Commits</a>
             <a href="{data.repoURL}/-/branches"><Icon svgPath={mdiSourceBranch} inline /> Branches</a>
             <a href="{data.repoURL}/-/tags"><Icon svgPath={mdiTag} inline /> Tags</a>
+            <a href="{data.repoURL}/-/stats/contributors">Contributors</a>
         </p>
 
         {#if !$treeOrError.loading && $treeOrError.data && !isErrorLike($treeOrError.data)}
