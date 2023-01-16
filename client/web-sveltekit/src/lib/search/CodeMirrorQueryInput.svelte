@@ -6,12 +6,12 @@
     import { EditorView, keymap, placeholder as placeholderExtension } from '@codemirror/view'
     import type { SearchPatternType } from '@sourcegraph/shared/src/graphql-operations'
     import { browser } from '$app/environment'
-    import { createDefaultSuggestions, singleLine } from '@sourcegraph/search-ui/src/input/codemirror'
+    import { createDefaultSuggestions, singleLine } from '@sourcegraph/branded/src/search-ui/input/codemirror'
     import { fetchStreamSuggestions } from '@sourcegraph/shared/src/search/suggestions'
     import { goto } from '$app/navigation'
-    import { parseInputAsQuery } from '@sourcegraph/search-ui/src/input/codemirror/parsedQuery'
-    import { querySyntaxHighlighting } from '@sourcegraph/search-ui/src/input/codemirror/syntax-highlighting'
-    import { QueryChangeSource, type QueryState } from '@sourcegraph/search/src/helpers'
+    import { parseInputAsQuery } from '@sourcegraph/branded/src/search-ui/input/codemirror/parsedQuery'
+    import { querySyntaxHighlighting } from '@sourcegraph/branded/src/search-ui/input/codemirror/syntax-highlighting'
+    import { QueryChangeSource, type QueryState } from '@sourcegraph/shared/src/search/helpers'
 
     export let queryState: QueryState
     export let patternType: SearchPatternType

@@ -6,7 +6,7 @@
     import { EditorView, lineNumbers } from '@codemirror/view'
     import { syntaxHighlight } from '@sourcegraph/web/src/repo/blob/codemirror/highlight'
     import type { BlobFileFields } from '@sourcegraph/web/src/graphql-operations'
-    import '@sourcegraph/branded/src/global-styles/highlight.scss'
+    import '@sourcegraph/wildcard/src/global-styles/highlight.scss'
 
     export let blob: BlobFileFields
     export let highlights: string

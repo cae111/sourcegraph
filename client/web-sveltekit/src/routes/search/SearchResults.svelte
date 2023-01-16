@@ -17,7 +17,6 @@
     import RepoSearchResult from './RepoSearchResult.svelte'
     import { beforeNavigate } from '$app/navigation'
     import { setContext, tick } from 'svelte'
-    import { SearchPatternType } from '@sourcegraph/shared/src/schema'
     import { observeIntersection } from '$lib/intersection-observer'
     import Section from './SidebarSection.svelte'
     import { preserveScrollPosition } from '$lib/app'
@@ -28,6 +27,7 @@
     import SymbolSearchResult from './SymbolSearchResult.svelte'
     import StreamingProgress from './StreamingProgress.svelte'
     import type { SidebarFilter } from '$lib/search/utils'
+	import { SearchPatternType } from '@sourcegraph/shared/src/graphql-operations';
 
     export let query: string
     export let stream: Observable<AggregateStreamingSearchResults | undefined>

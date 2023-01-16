@@ -1,9 +1,14 @@
 import { SearchPatternType } from '@sourcegraph/shared/src/graphql-operations'
-import { SearchMode } from '@sourcegraph/search'
 import { buildSearchURLQuery } from '@sourcegraph/shared/src/util/url'
 import { goto } from '$app/navigation'
 import { writable } from 'svelte/store'
 import type { SettingsCascade } from '@sourcegraph/shared/src/settings/settings'
+
+// Defined in @sourcegraph/shared/src/search/searchQueryState.tsx
+export enum SearchMode {
+    Precise = 0,
+    SmartSearch = 1 << 0,
+}
 
 interface Options {
     caseSensitive: boolean

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { DiffHunkLineType, type FileDiffFields } from '@sourcegraph/web/src/graphql-operations'
-    import '@sourcegraph/branded/src/global-styles/highlight.scss'
+    import '@sourcegraph/wildcard/src/global-styles/highlight.scss'
 
     export let hunks: FileDiffFields['hunks']
 </script>

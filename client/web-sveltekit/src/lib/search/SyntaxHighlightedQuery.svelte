@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { decorateQuery } from '@sourcegraph/search-ui/src/util/query'
+import { decorateQuery } from '@sourcegraph/branded/src/search-ui/util/query'
 
     export let query: string
 

@@ -6,7 +6,7 @@
     import { mdiAlertCircle, mdiChevronDown, mdiChevronLeft, mdiInformationOutline, mdiMagnify } from '@mdi/js'
     import { renderMarkdown } from '@sourcegraph/common'
     import { pluralize } from '@sourcegraph/common/src/util/strings'
-    import { limitHit, sortBySeverity } from '@sourcegraph/search-ui/src/results/progress/utils'
+    import { limitHit, sortBySeverity } from '@sourcegraph/branded/src/search-ui/results/progress/utils'
     import type { Progress } from '@sourcegraph/shared/src/search/stream'
 
     export let progress: Progress

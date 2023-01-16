@@ -4,11 +4,10 @@
     import Popover from '$lib/Popover.svelte'
     import Tooltip from '$lib/Tooltip.svelte'
     import { mdiClose, mdiCodeBrackets, mdiFormatLetterCase, mdiLightningBolt, mdiMagnify, mdiRegex } from '@mdi/js'
-    import { SearchMode } from '@sourcegraph/search'
     import { SearchPatternType } from '@sourcegraph/shared/src/graphql-operations'
 
     import CodeMirrorQueryInput from './CodeMirrorQueryInput.svelte'
-    import { queryStateStore, submitSearch } from './state'
+    import { queryStateStore, SearchMode, submitSearch } from './state'
 
     export let queryState: ReturnType<typeof queryStateStore>
     export let patternType: SearchPatternType

@@ -2,7 +2,7 @@
     import type { SearchMatch } from '@sourcegraph/shared/src/search/stream'
     import { mdiBitbucket, mdiGithub, mdiGitlab, mdiStar } from '@mdi/js'
     import Icon from '$lib/Icon.svelte'
-    import { formatRepositoryStarCount } from '@sourcegraph/search-ui/src/util/stars'
+    import { formatRepositoryStarCount } from '@sourcegraph/branded/src/search-ui/util/stars'
     import Tooltip from '$lib/Tooltip.svelte'
 
     function codeHostIcon(repoName: string): { hostName: string; svgPath?: string } {

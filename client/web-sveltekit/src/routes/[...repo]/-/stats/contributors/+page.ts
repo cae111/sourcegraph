@@ -4,9 +4,11 @@ import { isErrorLike } from '@sourcegraph/common'
 import { psub } from '$lib/utils'
 import { map } from 'rxjs/operators/index'
 import type {
-    RepositoryContributorsResult,
-    RepositoryContributorsVariables,
+    PagedRepositoryContributorsResult,
+    PagedRepositoryContributorsVariables,
 } from '@sourcegraph/web/src/graphql-operations'
+
+const pageSize = 20
 
 const emptyPage = {
     totalCount: 0,
@@ -20,20 +22,39 @@ const emptyPage = {
 }
 
 export const load: PageLoad = ({ url, parent }) => {
-    const after = url.searchParams.get('after') ?? ''
+    const afterDate = url.searchParams.get('after') ?? ''
+    let last: number | null = null
+    let first: number | null = null
+    let after: string | null = null
+    let before: string | null = null
+
+    if (url.searchParams.has('pbefore')) {
+        last = pageSize
+        before = url.searchParams.get('pbefore')
+    } else if (url.searchParams.has('pafter')) {
+        first = pageSize
+        after = url.searchParams.get('pafter')
+    } else if (url.searchParams.has('last')) {
+        last = pageSize
+    } else {
+        first = pageSize
+    }
 
     const contributors = psub(
         parent().then(({ resolvedRevision, platformContext }) =>
             !isErrorLike(resolvedRevision)
                 ? platformContext
-                      .requestGraphQL<RepositoryContributorsResult, RepositoryContributorsVariables>({
+                      .requestGraphQL<PagedRepositoryContributorsResult, PagedRepositoryContributorsVariables>({
                           request: CONTRIBUTORS_QUERY,
                           variables: {
-                              afterDate: after,
-                              first: 20,
+                              afterDate,
                               repo: resolvedRevision.repo.id,
                               revisionRange: '',
                               path: '',
+                              first,
+                              last,
+                              after,
+                              before,
                           },
                           mightContainPrivateInfo: true,
                       })
@@ -48,8 +69,7 @@ export const load: PageLoad = ({ url, parent }) => {
     )
 
     return {
-        search: url.search,
-        after,
+        after: afterDate,
         contributors,
     }
 }

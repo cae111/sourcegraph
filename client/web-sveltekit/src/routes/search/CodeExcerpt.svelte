@@ -3,7 +3,7 @@
     import { catchError } from 'rxjs/operators/index'
     import { asError, isErrorLike, highlightNodeMultiline } from '@sourcegraph/common'
     import range from 'lodash/range'
-    import '@sourcegraph/branded/src/global-styles/highlight.scss'
+    import '@sourcegraph/wildcard/src/global-styles/highlight.scss'
     import type { MatchGroupMatch } from '@sourcegraph/shared/src/components/ranking/PerFileResultRanking'
     import { observeIntersection } from '$lib/intersection-observer'
 

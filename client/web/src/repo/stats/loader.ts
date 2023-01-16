@@ -23,7 +23,7 @@ export const CONTRIBUTORS_QUERY = gql`
                     afterDate: $afterDate
                     path: $path
                 ) {
-                    ...RepositoryContributorConnectionFields
+                    ...PagedRepositoryContributorConnectionFields
                 }
             }
         }
@@ -38,7 +38,7 @@ export const CONTRIBUTORS_QUERY = gql`
             startCursor
         }
         nodes {
-            ...RepositoryContributorNodeFields
+            ...PagedRepositoryContributorNodeFields
         }
     }
 
