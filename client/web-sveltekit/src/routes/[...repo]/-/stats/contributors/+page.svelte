@@ -7,16 +7,14 @@
     import {currentDate} from '$lib/stores'
 
 	import type { PageData } from "./$types";
-	import { mdiPageFirst, mdiPageLast, mdiChevronRight, mdiChevronLeft } from '@mdi/js';
-	import Icon from '$lib/Icon.svelte';
+	import Paginator from '$lib/Paginator.svelte';
 
     export let data: PageData
 
-    $: after = data.after
-    $: timePeriod = after
+    $: timePeriod = data.after
     $: contributorsLoader = data.contributors
     $: loading = $contributorsLoader.loading
-    let connection = null
+    let connection: Extract<typeof $contributorsLoader, {loading: false}>['data'];
     $: if (!$contributorsLoader.loading && $contributorsLoader.data) {
         connection = $contributorsLoader.data
     }
@@ -26,13 +24,14 @@
         timePeriod = element.dataset.value ?? ''
         const newURL = new URL($page.url)
         newURL.search = `after=${timePeriod}`
+        connection = null
         await goto(newURL)
     }
 </script>
 <section>
     <div class="container">
         <form method="GET">
-            Time period: <input name="after" bind:value={timePeriod} />
+            Time period: <input name="after" bind:value={timePeriod} placeholder="All time"/>
             <button type="button" data-value="7 days ago" on:click={setTimePeriod}>Last 7 days</button>
             <button type="button" data-value="30 days ago" on:click={setTimePeriod}>Last 30 days</button>
             <button type="button" data-value="1 year ago" on:click={setTimePeriod}>Last year</button>
@@ -55,13 +54,7 @@
                 </tbody>
             </table>
             <div class="d-flex flex-column align-items-center">
-                <form>
-                    <input type="hidden" name="after" value={data.after} />
-                    <button disabled={loading || !connection.pageInfo.hasPreviousPage}><Icon svgPath={mdiPageFirst} inline /></button>
-                    <button disabled={loading || !connection.pageInfo.hasPreviousPage} name="pbefore" value={connection.pageInfo.startCursor}><Icon svgPath={mdiChevronLeft} inline />Previous</button>
-                    <button disabled={loading || !connection.pageInfo.hasNextPage} name="pafter" value={connection.pageInfo.endCursor}>Next <Icon svgPath={mdiChevronRight} inline /></button>
-                    <button disabled={loading || !connection.pageInfo.hasNextPage} name="last"><Icon svgPath={mdiPageLast} inline/></button>
-                </form>
+                <Paginator disabled={loading} pageInfo={connection.pageInfo} />
                 <p>
                     <small>Total contributors: {connection.totalCount}</small>
                 </p>

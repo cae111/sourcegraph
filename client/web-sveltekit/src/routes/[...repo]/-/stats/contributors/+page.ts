@@ -10,14 +10,14 @@ import type {
 
 const pageSize = 20
 
-const emptyPage = {
+const emptyPage: Extract<PagedRepositoryContributorsResult['node'], { __typename: 'Repository' }>['contributors'] = {
     totalCount: 0,
     nodes: [] as any[],
     pageInfo: {
         hasNextPage: false,
         hasPreviousPage: false,
-        endCursor: undefined,
-        startCursor: undefined,
+        endCursor: null,
+        startCursor: null,
     },
 }
 
@@ -28,13 +28,13 @@ export const load: PageLoad = ({ url, parent }) => {
     let after: string | null = null
     let before: string | null = null
 
-    if (url.searchParams.has('pbefore')) {
+    if (url.searchParams.has('$before')) {
         last = pageSize
-        before = url.searchParams.get('pbefore')
-    } else if (url.searchParams.has('pafter')) {
+        before = url.searchParams.get('$before')
+    } else if (url.searchParams.has('$after')) {
         first = pageSize
-        after = url.searchParams.get('pafter')
-    } else if (url.searchParams.has('last')) {
+        after = url.searchParams.get('$after')
+    } else if (url.searchParams.has('$last')) {
         last = pageSize
     } else {
         first = pageSize
