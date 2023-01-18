@@ -9,13 +9,22 @@
         mdiFileDocumentOutline,
         mdiSourceBranch,
         mdiTag,
+		mdiAccount,
     } from '@mdi/js'
     import { isErrorLike } from '@sourcegraph/common'
 
     import type { PageData } from './$types'
     import Icon from '$lib/Icon.svelte'
+	import { ButtonGroup, Button } from '$lib/wildcard';
 
     export let data: PageData
+
+    const menu = [
+        {path: '/-/commits', icon: mdiSourceCommit, title: 'Commits'},
+        {path: '/-/branches', icon: mdiSourceBranch, title: 'Branches'},
+        {path: '/-/tags', icon: mdiTag, title: 'Tags'},
+        {path: '/-/stats/contributors', icon: mdiAccount, title: 'Contributors'},
+    ]
 
     $: treeOrError = data.preload.treeEntries
     $: commits = data.preload.commits
@@ -34,11 +43,16 @@
                 {data.resolvedRevision.repo.description}
             </p>
         {/if}
-        <p class="tabs">
-            <a href="{data.repoURL}/-/commits"><Icon svgPath={mdiSourceCommit} inline /> Commits</a>
-            <a href="{data.repoURL}/-/branches"><Icon svgPath={mdiSourceBranch} inline /> Branches</a>
-            <a href="{data.repoURL}/-/tags"><Icon svgPath={mdiTag} inline /> Tags</a>
-            <a href="{data.repoURL}/-/stats/contributors">Contributors</a>
+        <p>
+            <ButtonGroup>
+                {#each menu as entry}
+                    <Button variant="secondary" outline>
+                        <a slot="custom" let:className class={className} href="{data.repoURL}{entry.path}">
+                            <Icon svgPath={entry.icon} inline /> {entry.title}
+                        </a>
+                    </Button>
+                {/each}
+            </ButtonGroup>
         </p>
 
         {#if !$treeOrError.loading && $treeOrError.data && !isErrorLike($treeOrError.data)}
@@ -93,7 +107,7 @@
         overflow: auto;
         margin: 1rem;
         margin-bottom: 0;
-        background-color: var(--color-bg-1);
+        background-color: var(--code-bg);
         border-radius: var(--border-radius);
         overflow: hidden;
         display: flex;

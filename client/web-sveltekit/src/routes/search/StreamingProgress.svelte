@@ -8,6 +8,7 @@
     import { pluralize } from '@sourcegraph/common/src/util/strings'
     import { limitHit, sortBySeverity } from '@sourcegraph/branded/src/search-ui/results/progress/utils'
     import type { Progress } from '@sourcegraph/shared/src/search/stream'
+	import { Button } from '$lib/wildcard';
 
     export let progress: Progress
 
@@ -37,11 +38,13 @@
 </script>
 
 <Popover let:registerTrigger let:toggle placement="bottom-start">
-    <button use:registerTrigger class="popover sm" on:click={() => toggle()}>
-        <Icon svgPath={icons[severity]} inline />
-        {matchCount} results in {(progress.durationMs / 1000).toFixed(2)}s
-        <Icon svgPath={mdiChevronDown} inline />
-    </button>
+    <Button variant="secondary" size="sm" outline>
+        <button slot="custom" let:className use:registerTrigger class={className} on:click={() => toggle()}>
+            <Icon svgPath={icons[severity]} inline />
+            {matchCount} results in {(progress.durationMs / 1000).toFixed(2)}s
+            <Icon svgPath={mdiChevronDown} inline />
+        </button>
+    </Button>
     <div slot="content" class="popover">
         <p>
             Found {limitHit(progress) ? 'more than ' : ''}
@@ -55,15 +58,17 @@
             <h3>Some results skipped</h3>
             {#each sortedItems as item, index (item.reason)}
                 {@const open = openItems[index]}
-                <button class="item" on:click={() => (openItems[index] = !open)}>
-                    <span>
-                        <Icon svgPath={icons[item.severity]} inline />
-                        {item.title}
-                    </span>
-                    {#if item.message}
-                        <Icon svgPath={open ? mdiChevronDown : mdiChevronLeft} inline />
-                    {/if}
-                </button>
+                <Button variant="primary" outline>
+                    <button slot="custom" type="button" let:className class="{className} p-2 w-100 bg-transparent border-0" aria-expanded={open} on:click={() => (openItems[index] = !open)}>
+                        <h4 class="d-flex align-items-center mb-0 w-100">
+                            <span class="mr-1 flex-shrink-0"><Icon svgPath={icons[item.severity]} inline /></span>
+                            <span class="flex-grow-1 text-left">{item.title}</span>
+                            {#if item.message}
+                                <span class="chevron flex-shrink-0"><Icon svgPath={open ? mdiChevronDown : mdiChevronLeft} inline /></span>
+                            {/if}
+                        </h4>
+                    </button>
+                </Button>
                 {#if item.message && open}
                     <div class="message">
                         {@html renderMarkdown(item.message)}
@@ -87,47 +92,18 @@
                         )
                     </label>
                 {/each}
-                <button class="mt-3" disabled={searchAgainDisabled}>
-                    <Icon svgPath={mdiMagnify} />
-                    <span>Search again</span>
-                </button>
+                <Button variant="primary">
+                    <button slot="custom" let:className class="{className} mt-3" disabled={searchAgainDisabled}>
+                        <Icon svgPath={mdiMagnify} />
+                        <span>Search again</span>
+                    </button>
+                </Button>
             </form>
         {/if}
     </div>
 </Popover>
 
 <style lang="scss">
-    button {
-        margin: 0;
-        background-color: transparent;
-        padding: 0.25rem 0.75rem;
-        cursor: pointer;
-        border: none;
-        color: var(--body-color);
-        text-align: left;
-
-        &:disabled {
-            cursor: not-allowed;
-        }
-
-        &.popover {
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-        }
-
-        &.sm {
-            font-size: calc(min(0.75rem, 0.9166666667em));
-            line-height: 1rem;
-            letter-spacing: -0.0208333333em;
-        }
-
-        &.item {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-        }
-    }
-
     div.popover {
         width: 20rem;
 
@@ -136,6 +112,10 @@
         form {
             margin: 1rem;
         }
+    }
+
+    .chevron > :global(svg) {
+        fill: currentColor !important;
     }
 
     div.message {
