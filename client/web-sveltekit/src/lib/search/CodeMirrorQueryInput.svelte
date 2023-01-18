@@ -12,6 +12,7 @@
     import { parseInputAsQuery } from '@sourcegraph/branded/src/search-ui/input/codemirror/parsedQuery'
     import { querySyntaxHighlighting } from '@sourcegraph/branded/src/search-ui/input/codemirror/syntax-highlighting'
     import { QueryChangeSource, type QueryState } from '@sourcegraph/shared/src/search/helpers'
+	import { defaultTheme } from './codemirror/theme';
 
     export let queryState: QueryState
     export let patternType: SearchPatternType
@@ -70,6 +71,7 @@
 
     function createEditor(container: HTMLDivElement): EditorView {
         const extensions = [
+            defaultTheme,
             dynamicExtensions.of(configureExtensions({ interpretComments, patternType, placeholder })),
             Prec.high(
                 keymap.of([
