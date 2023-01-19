@@ -1,6 +1,6 @@
 import { psub } from '$lib/utils'
 import { isErrorLike } from '@sourcegraph/common/src/errors/utils'
-import { GitRefType } from '@sourcegraph/search'
+import { GitRefType } from '@sourcegraph/shared/src/graphql-operations'
 import { queryGitReferences } from '@sourcegraph/web/src/repo/loader'
 import type { PageLoad } from './$types'
 
