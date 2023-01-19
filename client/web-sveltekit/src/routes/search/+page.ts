@@ -5,7 +5,7 @@ import {
 } from '@sourcegraph/shared/src/search/stream'
 import type { StreamSearchOptions } from '@sourcegraph/shared/src/search/stream'
 import { BehaviorSubject, merge, Observable, of } from 'rxjs'
-import { shareReplay } from 'rxjs/operators/index'
+import { shareReplay } from 'rxjs/operators'
 import type { PageLoad } from './$types'
 import { navigating } from '$app/stores'
 import { get } from 'svelte/store'
