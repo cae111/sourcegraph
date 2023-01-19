@@ -151,7 +151,6 @@ importers:
       '@types/pollyjs__core': 4.3.1
       '@types/pollyjs__persister-fs': 2.0.1
       '@types/prettier': ^2.7.2
-      '@types/prismjs': ^1.26.0
       '@types/puppeteer': ^5.4.5
       '@types/react': 18.0.8
       '@types/react-calendar': ^3.5.2
@@ -324,7 +323,6 @@ importers:
       postcss-modules: ^6.0.0
       prettier: 2.8.1
       pretty-bytes: ^5.3.0
-      prismjs: ^1.29.0
       process: ^0.11.10
       prop-types: ^15.7.2
       punycode: 2.1.1
@@ -509,7 +507,6 @@ importers:
       path-browserify: 1.0.1
       postcss-inset: 1.0.0
       pretty-bytes: 5.3.0
-      prismjs: 1.29.0
       prop-types: 15.8.1
       react: 18.1.0
       react-calendar: 3.7.0_ef5jwxihqo6n7gxfmzogljlgcm
@@ -654,7 +651,6 @@ importers:
       '@types/pollyjs__core': 4.3.1
       '@types/pollyjs__persister-fs': 2.0.1
       '@types/prettier': 2.7.2
-      '@types/prismjs': 1.26.0
       '@types/puppeteer': 5.4.5
       '@types/react': 18.0.8
       '@types/react-calendar': 3.5.2
