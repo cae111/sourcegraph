@@ -1,7 +1,6 @@
 import { sveltekit } from '@sveltejs/kit/vite'
 import { resolve, join } from 'path'
 import type { UserConfig } from 'vite'
-import { splitVendorChunkPlugin } from 'vite'
 
 const config: UserConfig = {
     plugins: [sveltekit()],
@@ -14,6 +13,9 @@ const config: UserConfig = {
             scss: {
                 loadPaths: [resolve('../../node_modules')],
             },
+        },
+        modules: {
+            localsConvention: 'camelCase',
         },
     },
     server: {
