@@ -10,10 +10,8 @@
     $: brandedButtonClassname = getButtonClassName({ variant, outline, display, size })
 </script>
 
-{#if $$slots.custom}
-    <slot name="custom" className={brandedButtonClassname} />
-{:else}
+<slot name="custom" className={brandedButtonClassname}>
     <button class={brandedButtonClassname} {...$$restProps} on:click|preventDefault>
         <slot />
     </button>
-{/if}
+</slot>
