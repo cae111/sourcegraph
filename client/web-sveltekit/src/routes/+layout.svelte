@@ -4,7 +4,7 @@
     import type { LayoutData } from './$types'
     import { readable, writable } from 'svelte/store'
     import { onMount, setContext } from 'svelte'
-    import { graphqlClient, KEY, type SourcegraphContext } from '$lib/stores'
+    import { KEY, type SourcegraphContext } from '$lib/stores'
     import { isErrorLike } from '@sourcegraph/common'
     import { observeSystemIsLightTheme } from '@sourcegraph/shared/src/theme'
     import { browser } from '$app/environment'

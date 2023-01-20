@@ -1,9 +1,10 @@
-import { writable, type Writable, derived, type Readable, type Updater } from 'svelte/store'
+import { writable, type Writable, derived, type Readable } from 'svelte/store'
 import { TemporarySettingsStorage } from '@sourcegraph/shared/src/settings/temporary/TemporarySettingsStorage'
 import { migrateLocalStorageToTemporarySettings } from '@sourcegraph/shared/src/settings/temporary/migrateLocalStorageToTemporarySettings'
 import { logger } from '@sourcegraph/common'
 import type { TemporarySettings } from '@sourcegraph/shared/src/settings/temporary/TemporarySettings'
 import { getStores } from './stores'
+import type { LoadingData } from './utils'
 
 const loggedOutUserStore = new TemporarySettingsStorage(null, false)
 
@@ -27,13 +28,9 @@ export function createTemporarySettingsStorage(storage = loggedOutUserStore): Wr
 }
 
 type TemporarySettingsKey = keyof TemporarySettings
+type TemporarySettingStatus<K extends TemporarySettingsKey> = LoadingData<TemporarySettings[K], any>
 
-type TemporarySettingStatus<K extends TemporarySettingsKey> =
-    | { loading: true }
-    | { loading: false; data: TemporarySettings[K]; error: null }
-    | { loading: false; data: null; error: object }
-
-interface TemporarySetting<K extends TemporarySettingsKey> extends Readable<TemporarySettingStatus<K>> {
+interface TemporarySettingStore<K extends TemporarySettingsKey> extends Readable<TemporarySettingStatus<K>> {
     setValue(value: TemporarySettings[K]): void
 }
 
@@ -43,7 +40,7 @@ interface TemporarySetting<K extends TemporarySettingsKey> extends Readable<Temp
 export function temporarySetting<K extends TemporarySettingsKey>(
     key: K,
     defaultValue?: TemporarySettings[K]
-): TemporarySetting<K> {
+): TemporarySettingStore<K> {
     let storage: TemporarySettingsStorage | null = null
 
     const { subscribe } = derived(

@@ -2,7 +2,7 @@ import type { Observable } from 'rxjs'
 import { shareReplay } from 'rxjs/operators'
 import { type Readable, writable } from 'svelte/store'
 
-type LoadingData<D, E> =
+export type LoadingData<D, E> =
     | { loading: true }
     | { loading: false; data: D; error: null }
     | { loading: false; data: null; error: E }
