@@ -12,7 +12,8 @@ import { StreamingProgressProps } from './StreamingProgress'
 
 import styles from './StreamingProgressCount.module.scss'
 
-export { limitHit } from './utils'
+import { limitHit } from './utils'
+export { limitHit }
 
 const abbreviateNumber = (number: number): string => {
     if (number < 1e3) {

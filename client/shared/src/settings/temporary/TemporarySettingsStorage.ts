@@ -19,6 +19,8 @@ export class TemporarySettingsStorage {
     private loadSubscription: Subscription | null = null
     private saveSubscription: Subscription | null = null
 
+    private ignoreServer: boolean = false
+
     public dispose(): void {
         this.loadSubscription?.unsubscribe()
         this.saveSubscription?.unsubscribe()
@@ -44,17 +46,22 @@ export class TemporarySettingsStorage {
         this.settingsBackend = backend
 
         this.loadSubscription = this.settingsBackend.load().subscribe(settings => {
-            this.settings = settings
-            this.onChange.next(settings)
+            if (!this.ignoreServer) {
+                this.settings = settings
+                this.onChange.next(settings)
+            }
         })
     }
 
     public set<K extends keyof TemporarySettings>(key: K, value: TemporarySettings[K]): void {
+        this.ignoreServer = true
         this.settings[key] = value
         this.onChange.next(this.settings)
 
         this.saveSubscription?.unsubscribe()
-        this.saveSubscription = this.settingsBackend.edit({ [key]: value }).subscribe()
+        this.saveSubscription = this.settingsBackend.edit({ [key]: value }).subscribe({
+            complete: () => (this.ignoreServer = false),
+        })
     }
 
     public get<K extends keyof TemporarySettings>(

@@ -3,28 +3,29 @@
     import './styles.scss'
     import type { LayoutData } from './$types'
     import { readable, writable } from 'svelte/store'
-    import type { AuthenticatedUser } from '@sourcegraph/shared/src/auth'
-    import type { Settings } from '@sourcegraph/shared/src/settings/settings'
     import { onMount, setContext } from 'svelte'
-    import { KEY, type SourcegraphContext } from '$lib/stores'
+    import { graphqlClient, KEY, type SourcegraphContext } from '$lib/stores'
     import { isErrorLike } from '@sourcegraph/common'
-    import type { PlatformContext } from '@sourcegraph/shared/src/platform/context'
     import { observeSystemIsLightTheme } from '@sourcegraph/shared/src/theme'
     import { browser } from '$app/environment'
     import { readableObservable } from '$lib/utils'
+	import { createTemporarySettingsStorage } from '$lib/temporarySettings';
+	import { TemporarySettingsStorage } from '@sourcegraph/shared/src/settings/temporary/TemporarySettingsStorage';
 
     export let data: LayoutData
 
-    const user = writable<AuthenticatedUser | null>(null)
-    const settings = writable<Settings | null>(null)
-    const platformContext = writable<PlatformContext | null>(null)
+    const user = writable(data.user ?? null)
+    const settings = writable(data.settings)
+    const platformContext = writable(data.platformContext)
     const isLightTheme = browser ? readableObservable(observeSystemIsLightTheme(window).observable) : readable(true)
+    const temporarySettingsStorage = createTemporarySettingsStorage()
 
     setContext<SourcegraphContext>(KEY, {
         user,
         settings,
         platformContext,
         isLightTheme,
+        temporarySettingsStorage,
     })
 
     onMount(() => {
@@ -39,13 +40,14 @@
     $: $user = data.user ?? null
     $: $settings = data.settings
     $: $platformContext = data.platformContext
+    $: if ($user) {
+        $temporarySettingsStorage = new TemporarySettingsStorage(data.graphqlClient, true)
+    }
 
     $: if (browser) {
         document.documentElement.classList.toggle('theme-light', $isLightTheme)
         document.documentElement.classList.toggle('theme-dark', !$isLightTheme)
     }
-
-    $: console.log('settings', $settings)
 </script>
 
 <svelte:head>

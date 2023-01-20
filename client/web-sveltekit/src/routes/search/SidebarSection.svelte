@@ -1,35 +1,42 @@
 <script lang="ts">
     import Icon from '$lib/Icon.svelte'
     import type { SidebarFilter } from '$lib/search/utils'
+	import { temporarySetting } from '$lib/temporarySettings';
     import Tooltip from '$lib/Tooltip.svelte'
     import { mdiChevronDown, mdiChevronUp } from '@mdi/js'
+	import type { SectionID } from '@sourcegraph/shared/src/settings/temporary/searchSidebar';
 
+    export let id: SectionID
     export let items: SidebarFilter[]
     export let title: string
 
-    let open = true
+    const collapsedSections = temporarySetting('search.collapsedSidebarSections')
+    $: sections = !$collapsedSections.loading  && $collapsedSections.data ? $collapsedSections.data : null
+    $: open = sections ? !sections[id] : true
 </script>
 
-<button class="header" type="button" on:click={() => (open = !open)}>
-    <header><h5>{title}</h5></header>
-    <Icon svgPath={open ? mdiChevronUp : mdiChevronDown} inline --color="var(--icon-color)" />
-</button>
+{#if sections}
+    <button class="header" type="button" on:click={() => collapsedSections.setValue({...sections, [id]: open})}>
+        <header><h5>{title}</h5></header>
+        <Icon svgPath={open ? mdiChevronUp : mdiChevronDown} inline --color="var(--icon-color)" />
+    </button>
 
-{#if open}
-    <ul>
-        {#each items as item}
-            <li>
-                <button class="item" on:click data-value={item.value} data-run={item.runImmediately}>
-                    <span class="label">{item.label}</span>
-                    {#if item.count !== undefined}
-                        <Tooltip tooltip="At least {item.count} results match this filter.">
-                            <span class="count">{item.count}</span>
-                        </Tooltip>
-                    {/if}
-                </button>
-            </li>
-        {/each}
-    </ul>
+    {#if open}
+        <ul>
+            {#each items as item}
+                <li>
+                    <button class="item" on:click data-value={item.value} data-run={item.runImmediately}>
+                        <span class="label">{item.label}</span>
+                        {#if item.count !== undefined}
+                            <Tooltip tooltip="At least {item.count} results match this filter.">
+                                <span class="count">{item.count}</span>
+                            </Tooltip>
+                        {/if}
+                    </button>
+                </li>
+            {/each}
+        </ul>
+    {/if}
 {/if}
 
 <style lang="scss">

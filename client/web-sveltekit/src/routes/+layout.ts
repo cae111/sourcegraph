@@ -2,7 +2,7 @@ import { browser } from '$app/environment'
 import { isErrorLike } from '@sourcegraph/common'
 import { currentAuthStateQuery } from '@sourcegraph/shared/src/auth'
 import type { CurrentAuthStateResult } from '@sourcegraph/shared/src/graphql-operations'
-import { requestGraphQL } from '@sourcegraph/web/src/backend/graphql'
+import { getWebGraphQLClient, requestGraphQL } from '@sourcegraph/web/src/backend/graphql'
 import { createPlatformContext } from '@sourcegraph/web/src/platform/context'
 import { from } from 'rxjs'
 import { map, take } from 'rxjs/operators/index'
@@ -25,6 +25,7 @@ export const load: LayoutLoad = () => {
 
     return {
         platformContext,
+        graphqlClient: getWebGraphQLClient(),
         user: requestGraphQL<CurrentAuthStateResult>(currentAuthStateQuery)
             .pipe(map(data => data.data?.currentUser))
             .toPromise(),

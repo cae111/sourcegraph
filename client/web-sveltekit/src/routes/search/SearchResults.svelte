@@ -28,6 +28,7 @@
     import StreamingProgress from './StreamingProgress.svelte'
     import type { SidebarFilter } from '$lib/search/utils'
 	import { SearchPatternType } from '@sourcegraph/shared/src/graphql-operations';
+	import { SectionID } from '@sourcegraph/shared/src/settings/temporary/searchSidebar';
 
     export let query: string
     export let stream: Observable<AggregateStreamingSearchResults | undefined>
@@ -142,9 +143,9 @@
                 </div>
                 <aside class="sidebar">
                     <h4>Filters</h4>
-                    <Section items={searchTypes} title="Search types" on:click={updateQuery} />
+                    <Section id={SectionID.SEARCH_TYPES} items={searchTypes} title="Search types" on:click={updateQuery} />
                     {#if langFilters.length > 1}
-                        <Section items={langFilters} title="Languages" on:click={updateQuery} />
+                        <Section id={SectionID.LANGUAGES} items={langFilters} title="Languages" on:click={updateQuery} />
                     {/if}
                 </aside>
             {/if}
