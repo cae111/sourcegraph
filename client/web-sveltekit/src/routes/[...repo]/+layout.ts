@@ -8,6 +8,11 @@ import { asError, encodeURIPathComponent, type ErrorLike } from '@sourcegraph/co
 
 export const load: LayoutLoad = ({ params }) => {
     const { repoName, revision } = parseRepoRevision(params.repo)
+
+    // TODO: Consider awaiting the resolved revision here since and use
+    // SvelteKit's error handling / error page rendering instead. Verify whether
+    // returning a promise instead of an object containing a promises changing
+    // load behavior.
     const resolvedRevision = resolveRepoRevision({ repoName, revision })
         .pipe(
             catchError(error => {
@@ -23,7 +28,8 @@ export const load: LayoutLoad = ({ params }) => {
                 }
 
                 throw error
-            })
+            }),
+            catchError(error => of<ErrorLike>(asError(error)))
         )
         .toPromise()
 

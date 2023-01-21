@@ -9,6 +9,8 @@
     import Permalink from './Permalink.svelte'
     import { getRevisionLabel, navFromPath } from '$lib/repo/utils'
     import { displayRepoName } from '$lib/shared/repo'
+    import RepoNotFoundError from './RepoNotFoundError.svelte'
+	import { isRepoNotFoundErrorLike } from '@sourcegraph/shared/src/backend/errors';
 
     export let data: LayoutData
 
@@ -27,6 +29,7 @@
     const repoActions = createActionContext()
     setContext('repo-actions', repoActions)
 
+    $: viewerCanAdminister = data.user?.siteAdmin ?? false
     $: ({ repo, path } = $page.params)
     $: nav = path ? navFromPath(path, repo, $page.url.pathname.includes('/-/blob/')) : []
 
@@ -39,12 +42,21 @@
 </script>
 
 {#if isErrorLike(data.resolvedRevision)}
-    Something went wrong
+    <!--
+        We are rendering the error page here instead of using SvelteKit's error handler.
+        See comment in +layout.ts
+    -->
+    {#if isRepoNotFoundErrorLike(data.resolvedRevision)}
+        <RepoNotFoundError {repoName} {viewerCanAdminister} />
+    {:else}
+        Something went wrong
+    {/if}
 {:else}
     <div class="header">
         <nav>
             <h1><a href="/{repo}"><Icon svgPath={mdiSourceRepository} inline /> {repoName}</a></h1>
                 <!--
+                TODO: Add back revision
                 {#if revisionLabel}
                     @ <span class="button">{revisionLabel}</span>
                 {/if}

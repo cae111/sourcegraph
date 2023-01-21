@@ -5,6 +5,7 @@
     import UserAvatar from '$lib/UserAvatar.svelte'
     import { mdiBookOutline, mdiChartBar, mdiMagnify } from '@mdi/js'
     import type { AuthenticatedUser } from '@sourcegraph/shared/src/auth'
+    import {PUBLIC_SG_ENTERPRISE} from '$env/static/public'
 
     export let authenticatedUser: AuthenticatedUser | null | undefined
 </script>
@@ -22,6 +23,16 @@
                     <span>Code search</span>
                 </a>
             </li>
+            <!--
+                Example for conditionally showing navigation links.
+                Need to investigate whether a branch like this would be removed
+                in a production build due to dead-code elimination.
+            -->
+            {#if PUBLIC_SG_ENTERPRISE}
+                <li>
+                    <a href="/contexts">Contexts</a>
+                </li>
+            {/if}
             <!--
             <li aria-current={$page.url.pathname === '/notebooks' ? 'page' : undefined}>
                 <a href="/notebooks">
