@@ -1,11 +1,10 @@
 <script lang="ts">
-    import { page } from '$app/stores'
-    import Icon from '$lib/Icon.svelte'
     import logo from '$lib/images/sourcegraph-mark.svg'
     import UserAvatar from '$lib/UserAvatar.svelte'
     import { mdiBookOutline, mdiChartBar, mdiMagnify } from '@mdi/js'
     import type { AuthenticatedUser } from '@sourcegraph/shared/src/auth'
     import {PUBLIC_SG_ENTERPRISE} from '$env/static/public'
+	import HeaderNavLink from './HeaderNavLink.svelte';
 
     export let authenticatedUser: AuthenticatedUser | null | undefined
 </script>
@@ -16,22 +15,18 @@
     </a>
     <nav class="ml-2">
         <ul>
-            <li aria-current={$page.url.pathname === '/search' ? 'page' : undefined}>
-                <a href="/search">
-                    <Icon svgPath={mdiMagnify} inline />
-                    &nbsp;
-                    <span>Code search</span>
-                </a>
-            </li>
-            <!--
-                Example for conditionally showing navigation links.
-                Need to investigate whether a branch like this would be removed
-                in a production build due to dead-code elimination.
-            -->
+            <HeaderNavLink href="/search" svgIconPath={mdiMagnify}>
+                Code search
+            </HeaderNavLink>
             {#if PUBLIC_SG_ENTERPRISE}
-                <li>
-                    <a href="/contexts">Contexts</a>
-                </li>
+                <!--
+                    Example for conditionally showing navigation links.
+                    Need to investigate whether a branch like this would be removed
+                    in a production build due to dead-code elimination.
+                -->
+                <HeaderNavLink href="/contexts">
+                    Contexts
+                </HeaderNavLink>
             {/if}
             <!--
             <li aria-current={$page.url.pathname === '/notebooks' ? 'page' : undefined}>
@@ -105,6 +100,10 @@
     <div class="user">
         {#if authenticatedUser}
             <UserAvatar user={authenticatedUser} />
+            <!--
+                Needs data-sveltekit-reload to force hitting the server and
+                proxying the request to the Sourcegraph instance.
+            -->
             <a href="/-/sign-out" data-sveltekit-reload>Sign out</a>
         {:else}
             <a href="/sign-in" data-sveltekit-reload>Sign in</a>
@@ -121,6 +120,23 @@
         min-height: 40px;
         padding: 0 1rem;
         background-color: var(--color-bg-1);
+    }
+
+    img {
+        &:hover {
+            @keyframes spin {
+                50% {
+                    transform: rotate(180deg) scale(1.2);
+                }
+                100% {
+                    transform: rotate(180deg) scale(1);
+                }
+            }
+
+            @media (prefers-reduced-motion: no-preference) {
+                animation: spin 0.5s ease-in-out 1;
+            }
+        }
     }
 
     nav {
@@ -143,28 +159,5 @@
         justify-content: center;
         list-style: none;
         background-size: contain;
-    }
-
-    li {
-        position: relative;
-        display: flex;
-        align-items: stretch;
-    }
-
-    li[aria-current='page'] {
-        border-bottom: 2px solid var(--brand-secondary);
-    }
-
-    nav a {
-        display: flex;
-        height: 100%;
-        align-items: center;
-        padding: 0 0.5rem;
-        color: var(--color-text);
-        text-decoration: none;
-
-        &:hover {
-            border-bottom: 2px solid var(--border-color-2);
-        }
     }
 </style>
