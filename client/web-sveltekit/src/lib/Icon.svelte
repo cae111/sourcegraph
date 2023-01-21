@@ -12,6 +12,7 @@
 
 <style lang="scss">
     svg {
-        fill: var(--color, currentColor);
+        color: var(--color, inherit);
+        fill: currentColor;
     }
 </style>
