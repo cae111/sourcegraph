@@ -20,8 +20,10 @@ const config: UserConfig = {
     },
     server: {
         proxy: {
+            // Proxy requests to specific endpoints to a real Sourcegraph
+            // instance.
             '^(/sign-in|/.assets|/-|/.api|/search/stream)': {
-                target: 'https://sourcegraph.com',
+                target: process.env.SOURCEGRAPH_API_URL || 'https://sourcegraph.com',
                 changeOrigin: true,
                 secure: false,
             },
