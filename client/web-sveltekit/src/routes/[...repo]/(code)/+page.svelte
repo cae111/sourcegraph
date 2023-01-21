@@ -1,51 +1,27 @@
 <script lang="ts">
     import Commit from '$lib/Commit.svelte'
     import {
-        mdiSourceCommit,
-        mdiSourceRepository,
         mdiFolderOutline,
         mdiFileDocumentOutline,
-        mdiSourceBranch,
-        mdiTag,
-		mdiAccount,
     } from '@mdi/js'
     import { isErrorLike } from '@sourcegraph/common'
 
     import type { PageData } from './$types'
     import Icon from '$lib/Icon.svelte'
-	import { ButtonGroup, Button } from '$lib/wildcard';
 
     export let data: PageData
-
-    const menu = [
-        {path: '/-/commits', icon: mdiSourceCommit, title: 'Commits'},
-        {path: '/-/branches', icon: mdiSourceBranch, title: 'Branches'},
-        {path: '/-/tags', icon: mdiTag, title: 'Tags'},
-        {path: '/-/stats/contributors', icon: mdiAccount, title: 'Contributors'},
-    ]
 
     $: treeOrError = data.treeEntries
     $: commits = data.commits
 </script>
 
 <div class="content">
-    <h1><Icon svgPath={mdiSourceRepository} /> {data.repoName}</h1>
     {#if !isErrorLike(data.resolvedRevision)}
+        <h3>Description</h3>
         <p>
             {data.resolvedRevision.repo.description}
         </p>
     {/if}
-    <p>
-        <ButtonGroup>
-            {#each menu as entry}
-                <Button variant="secondary" outline>
-                    <a slot="custom" let:className class={className} href="{data.repoURL}{entry.path}">
-                        <Icon svgPath={entry.icon} inline /> {entry.title}
-                    </a>
-                </Button>
-            {/each}
-        </ButtonGroup>
-    </p>
 
     {#if !$treeOrError.loading && $treeOrError.data && !isErrorLike($treeOrError.data)}
         <h3>Files and directories</h3>

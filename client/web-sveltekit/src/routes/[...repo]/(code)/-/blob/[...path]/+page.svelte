@@ -44,6 +44,10 @@
 </div>
 
 <style lang="scss">
+    .content {
+        overflow: hidden;
+        display: flex;
+    }
     .loading {
         filter: blur(1px);
     }

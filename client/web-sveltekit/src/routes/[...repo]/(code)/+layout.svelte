@@ -60,10 +60,8 @@
 
     .content {
         flex: 1;
-        overflow: auto;
         margin: 0 1rem;
         background-color: var(--code-bg);
-        border-radius: var(--border-radius);
         overflow: hidden;
         display: flex;
         flex-direction: column;

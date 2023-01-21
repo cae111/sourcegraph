@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from '$app/stores'
     import Icon from '$lib/Icon.svelte'
-    import { mdiChevronRight, mdiSourceRepository } from '@mdi/js'
+    import { mdiAccount, mdiChevronRight, mdiCodeTags, mdiSourceBranch, mdiSourceCommit, mdiSourceRepository, mdiTag } from '@mdi/js'
     import { isErrorLike } from '@sourcegraph/common'
     import type { LayoutData } from './$types'
     import { createActionContext } from '$lib/repo/actions'
@@ -11,6 +11,17 @@
     import { displayRepoName } from '$lib/shared/repo'
 
     export let data: LayoutData
+
+    const menu = [
+        {path: '/-/commits', icon: mdiSourceCommit, title: 'Commits'},
+        {path: '/-/branches', icon: mdiSourceBranch, title: 'Branches'},
+        {path: '/-/tags', icon: mdiTag, title: 'Tags'},
+        {path: '/-/stats/contributors', icon: mdiAccount, title: 'Contributors'},
+    ] as const
+
+    function isCodePage(repoURL: string, pathname: string) {
+        return pathname === repoURL || pathname.startsWith(`${repoURL}/-/blob`) || pathname.startsWith(`${repoURL}/-/tree`)
+    }
 
     // Sets up a context for other components to add add buttons to the header
     const repoActions = createActionContext()
@@ -32,34 +43,95 @@
 {:else}
     <div class="header">
         <nav>
-            <a class="button" href="/{repo}"><Icon svgPath={mdiSourceRepository} inline /> {repoName}</a>
-            {#if revisionLabel}
-                @ <span class="button">{revisionLabel}</span>
-            {/if}
-            {#if nav.length > 0}
-                <Icon svgPath={mdiChevronRight} inline />
-                <span class="crumps">
-                    {#each nav as [label, url]}
-                        <span>/</span>
-                        <a href={url}>{label}</a>&nbsp;
+            <h1><a href="/{repo}"><Icon svgPath={mdiSourceRepository} inline /> {repoName}</a></h1>
+                <!--
+                {#if revisionLabel}
+                    @ <span class="button">{revisionLabel}</span>
+                {/if}
+                -->
+                <ul class="menu">
+                        <li>
+                            <a href={data.repoURL} class:active={isCodePage(data.repoURL, $page.url.pathname)}>
+                                <Icon svgPath={mdiCodeTags} inline /> <span class="ml-1">Code</span>
+                            </a>
+                        </li>
+                    {#each menu as entry}
+                        {@const href = data.repoURL + entry.path}
+                        <li>
+                            <a href={href} class:active={$page.url.pathname.startsWith(href)}>
+                                <Icon svgPath={entry.icon} inline /> <span class="ml-1">{entry.title}</span>
+                            </a>
+                        </li>
                     {/each}
-                </span>
-            {/if}
+                </ul>
         </nav>
+
         <div class="actions">
             {#each $repoActions as action (action.key)}
                 <svelte:component this={action.component} />
             {/each}
         </div>
     </div>
+    <div class="ml-3 mt-1">
+        {#if nav.length > 0}
+            <span class="crumps">
+                {#each nav as [label, url]}
+                    <span>/</span>
+                    <a href={url}>{label}</a>&nbsp;
+                {/each}
+            </span>
+        {/if}
+    </div>
     <slot />
 {/if}
 
-<style>
+<style lang="scss">
     .header {
         display: flex;
         align-items: center;
-        margin: 1rem 1rem 0 1rem;
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid var(--border-color)
+    }
+
+    h1 {
+        margin: 0;
+        margin-right: 1rem;
+        font-size: 1.3rem;
+    }
+
+    nav {
+        display: flex;
+        align-items: center;
+
+        a {
+            color: var(--body-color);
+            text-decoration: none;
+        }
+
+    }
+
+    ul.menu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;;
+
+        li a {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            margin: 0 0.25rem;
+            border-radius: var(--border-radius);
+
+            &:hover {
+                background-color: var(--color-bg-2);
+            }
+
+            &.active {
+                background-color: var(--color-bg-3);
+            }
+        }
     }
 
     .actions {

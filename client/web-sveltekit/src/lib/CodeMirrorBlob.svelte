@@ -25,6 +25,7 @@
             shCompartment.of(configureSyntaxHighlighting(blob.content, highlights)),
             EditorView.theme({
                 '&': {
+                    width: '100%',
                     'min-height': 0,
                     color: 'var(--color-code)',
                     flex: 1,
