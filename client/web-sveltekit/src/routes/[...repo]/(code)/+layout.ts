@@ -3,12 +3,12 @@ import { asError, isErrorLike, type ErrorLike } from '@sourcegraph/common'
 import { requestGraphQL } from '@sourcegraph/web/src/backend/graphql'
 import { fetchTreeEntries } from '@sourcegraph/shared/src/backend/repo'
 import { catchError } from 'rxjs/operators/index'
-import { psub } from '$lib/utils'
+import { asStore } from '$lib/utils'
 import { dirname } from 'path'
 
 export const load: PageLoad = ({ parent, params }) => {
     return {
-        treeEntries: psub(
+        treeEntries: asStore(
             parent().then(({ resolvedRevision, repoName, revision }) =>
                 !isErrorLike(resolvedRevision)
                     ? fetchTreeEntries({

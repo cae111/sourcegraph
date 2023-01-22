@@ -1,7 +1,8 @@
 import type { PageLoad } from './$types'
 import { CONTRIBUTORS_QUERY } from '@sourcegraph/web/src/repo/stats/loader'
 import { isErrorLike } from '@sourcegraph/common'
-import { psub } from '$lib/utils'
+import { asStore } from '$lib/utils'
+import { getPaginationParams } from '$lib/Paginator.svelte'
 import { map } from 'rxjs/operators/index'
 import type {
     PagedRepositoryContributorsResult,
@@ -23,24 +24,9 @@ const emptyPage: Extract<PagedRepositoryContributorsResult['node'], { __typename
 
 export const load: PageLoad = ({ url, parent }) => {
     const afterDate = url.searchParams.get('after') ?? ''
-    let last: number | null = null
-    let first: number | null = null
-    let after: string | null = null
-    let before: string | null = null
+    const { first, last, before, after } = getPaginationParams(url.searchParams, pageSize)
 
-    if (url.searchParams.has('$before')) {
-        last = pageSize
-        before = url.searchParams.get('$before')
-    } else if (url.searchParams.has('$after')) {
-        first = pageSize
-        after = url.searchParams.get('$after')
-    } else if (url.searchParams.has('$last')) {
-        last = pageSize
-    } else {
-        first = pageSize
-    }
-
-    const contributors = psub(
+    const contributors = asStore(
         parent().then(({ resolvedRevision, platformContext }) =>
             !isErrorLike(resolvedRevision)
                 ? platformContext

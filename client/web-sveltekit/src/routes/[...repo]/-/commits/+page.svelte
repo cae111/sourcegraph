@@ -4,7 +4,7 @@
 
     export let data: PageData
 
-    $: commits = data.preload.commits
+    $: commits = data.commits
 </script>
 
 <section>

@@ -1,5 +1,5 @@
 import { fetchRepoCommit, queryRepositoryComparisonFileDiffs } from '$lib/loader/commits'
-import { psub } from '$lib/utils'
+import { asStore } from '$lib/utils'
 import { isErrorLike } from '@sourcegraph/common'
 import type { PageLoad } from './$types'
 
@@ -19,23 +19,21 @@ export const load: PageLoad = ({ parent, params }) => {
     })
 
     return {
-        prefetch: {
-            commit: psub(commit.then(result => result?.commit ?? null)),
-            diff: psub(
-                commit.then(result => {
-                    if (!result?.commit?.oid || !result?.commit.parents[0]?.oid) {
-                        return null
-                    }
-                    return queryRepositoryComparisonFileDiffs({
-                        repo: result.repo.id,
-                        base: result.commit?.parents[0].oid,
-                        head: result.commit?.oid,
-                        paths: [],
-                        first: null,
-                        after: null,
-                    }).toPromise()
-                })
-            ),
-        },
+        commit: asStore(commit.then(result => result?.commit ?? null)),
+        diff: asStore(
+            commit.then(result => {
+                if (!result?.commit?.oid || !result?.commit.parents[0]?.oid) {
+                    return null
+                }
+                return queryRepositoryComparisonFileDiffs({
+                    repo: result.repo.id,
+                    base: result.commit?.parents[0].oid,
+                    head: result.commit?.oid,
+                    paths: [],
+                    first: null,
+                    after: null,
+                }).toPromise()
+            })
+        ),
     }
 }

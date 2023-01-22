@@ -5,7 +5,7 @@
 
     export let data: PageData
 
-    $: branchesData = data.prefetch.branches
+    $: branchesData = data.branches
     $: defaultBranch = !$branchesData.loading && $branchesData.data ? $branchesData.data.defaultBranch : null
     $: activeBranches = !$branchesData.loading && $branchesData.data ? $branchesData.data.activeBranches : null
 </script>

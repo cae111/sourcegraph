@@ -1,10 +1,20 @@
 <script lang="ts">
     export let inline = false
+    export let center = true
 </script>
 
-<div class="loading-spinner" class:icon-inline={inline} aria-label="loading" aria-live="polite" />
+<div class:center>
+    <div class="loading-spinner" class:center class:icon-inline={inline} aria-label="loading" aria-live="polite" />
+</div>
 
 <style lang="scss">
+    .center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+    }
+
     .loading-spinner {
         :global(.theme-light) & {
             --loading-spinner-outer-color: var(--gray-05);

@@ -8,9 +8,11 @@ export type LoadingData<D, E> =
     | { loading: false; data: null; error: E }
 
 /**
- * Converts a promise to a readable that emits loading and error data.
+ * Converts a promise to a readable store which emits loading and error data.
+ * This is useful in loader functions to prevent SvelteKit from waiting for the
+ * promise to resolve before rendering the page.
  */
-export function psub<T, E = Error>(promise: Promise<T>): Readable<LoadingData<T, E>> {
+export function asStore<T, E = Error>(promise: Promise<T>): Readable<LoadingData<T, E>> {
     const { subscribe, set } = writable<LoadingData<T, E>>({ loading: true })
     promise.then(
         result => set({ loading: false, data: result, error: null }),

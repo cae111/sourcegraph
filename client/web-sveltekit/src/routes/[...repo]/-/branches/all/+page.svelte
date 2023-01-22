@@ -6,7 +6,7 @@
 
     export let data: PageData
 
-    $: branches = data.preload.branches
+    $: branches = data.branches
     $: nodes = !$branches.loading && $branches.data ? $branches.data.nodes : null
     $: total = !$branches.loading && $branches.data ? $branches.data.totalCount : null
 </script>

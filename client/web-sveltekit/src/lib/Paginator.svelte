@@ -1,3 +1,23 @@
+<script context="module" lang="ts">
+    enum Param {
+        before = '$before',
+        after = '$after',
+        last = '$last'
+    }
+
+    export function getPaginationParams(searchParams: URLSearchParams, pageSize: number): {first: number, last: null, before: null, after: string|null}|{first: null, last: number, before: string|null, after: null} {
+        if (searchParams.has('$before')) {
+            return {first: null, last: pageSize, before: searchParams.get(Param.before), after: null}
+        } else if (searchParams.has('$after')) {
+            return {first: pageSize, last: null, before: null, after: searchParams.get(Param.after)}
+        } else if (searchParams.has('$last')) {
+            return {first: null, last: pageSize, before: null, after: null}
+        } else {
+            return {first: pageSize, last: null, before: null, after: null}
+        }
+    }
+</script>
+
 <script lang="ts">
 	import Icon from "./Icon.svelte";
 	import { mdiPageFirst, mdiPageLast, mdiChevronRight, mdiChevronLeft } from '@mdi/js';
@@ -6,21 +26,21 @@
     export let pageInfo: {hasPreviousPage: boolean, hasNextPage: boolean, startCursor: string|null, endCursor: string|null}
     export let disabled: boolean
 
-    function urlWithParameter(name: string, value: string|null) {
+    function urlWithParameter(name: string, value: string|null): string  {
         const url = new URL($page.url)
-        url.searchParams.delete('$before')
-        url.searchParams.delete('$after')
-        url.searchParams.delete('$last')
+        url.searchParams.delete(Param.before)
+        url.searchParams.delete(Param.after)
+        url.searchParams.delete(Param.last)
         if (value !== null) {
             url.searchParams.set(name, value)
         }
-        return url
+        return url.toString()
     }
 
-    $: firstPageURL = urlWithParameter('', null).toString()
-    $: previousPageURL = urlWithParameter('$before', pageInfo.startCursor).toString()
-    $: nextPageURL = urlWithParameter('$after', pageInfo.endCursor).toString()
-    $: lastPageURL = urlWithParameter('$last', '').toString()
+    let firstPageURL = urlWithParameter('', null)
+    let lastPageURL = urlWithParameter(Param.last, '')
+    $: previousPageURL = urlWithParameter(Param.before, pageInfo.startCursor)
+    $: nextPageURL = urlWithParameter(Param.after, pageInfo.endCursor)
 </script>
 
 <div>

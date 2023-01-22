@@ -6,7 +6,7 @@
 
     export let data: PageData
 
-    $: tags = data.preload.tags
+    $: tags = data.tags
     $: nodes = !$tags.loading && $tags.data ? $tags.data.nodes : null
     $: total = !$tags.loading && $tags.data ? $tags.data.totalCount : null
 </script>

@@ -6,36 +6,35 @@
 
     export let data: PageData
 
-    $: ({ commit, diff } = data.prefetch)
+    $: ({ commit, diff } = data)
 </script>
 
-{#if $commit.loading}
-    <LoadingSpinner />
-{:else if $commit.data}
-    <section>
-        <div class="header">
-            <div class="info"><Commit commit={$commit.data} alwaysExpanded /></div>
-            <div>
-                <span>Commit:&nbsp;{$commit.data.abbreviatedOID}</span>
-                <span class="parents">
-                    {$commit.data.parents.length} parents:
-                    {#each $commit.data.parents as parent}
-                        <a href={parent.url}>{parent.abbreviatedOID}</a>{' '}
-                    {/each}
-                </span>
-            </div>
-        </div>
-        {#if $diff.loading}
-            <LoadingSpinner />
-        {:else if $diff.data}
-            <ul>
-                {#each $diff.data.nodes as node}
-                    <li><FileDiff fileDiff={node} /></li>
+<section>
+{#if !$commit.loading && $commit.data}
+    <div class="header">
+        <div class="info"><Commit commit={$commit.data} alwaysExpanded /></div>
+        <div>
+            <span>Commit:&nbsp;{$commit.data.abbreviatedOID}</span>
+            <span class="parents">
+                {$commit.data.parents.length} parents:
+                {#each $commit.data.parents as parent}
+                    <a href={parent.url}>{parent.abbreviatedOID}</a>{' '}
                 {/each}
-            </ul>
-        {/if}
-    </section>
+            </span>
+        </div>
+    </div>
+    {#if !$diff.loading && $diff.data}
+        <ul>
+            {#each $diff.data.nodes as node}
+                <li><FileDiff fileDiff={node} /></li>
+            {/each}
+        </ul>
+    {/if}
 {/if}
+{#if $commit.loading || $diff.loading}
+    <LoadingSpinner />
+{/if}
+</section>
 
 <style lang="scss">
     section {

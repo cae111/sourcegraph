@@ -13,7 +13,6 @@
     $: highlights = data.highlights
     $: loading = $blob.loading
     let blobData: BlobFileFields
-    $: console.log($blob)
     $: if ($blob && !$blob.loading && $blob.data) {
         blobData = $blob.data
     }

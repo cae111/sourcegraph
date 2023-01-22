@@ -1,38 +1,29 @@
-# create-svelte
+# Sourcegraph SvelteKit
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+This folder contains the experimental [SvelteKit](https://kit.svelte.dev/)
+implementation of the Sourcegraph app.
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
-```
+**NOTE:** This is a _very early_ prototype and it will change a lot.
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
 ```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+# Install dependencies
+pnpm install
+# Run dev server
+pnpm run dev
 ```
 
-## Building
+You can also build the OSS or dotcom version by running `pnpm run dev:oss` and
+`pnpm run dev:dotcom` respectively, but they don't really differ in
+functionality yet.
 
-To create a production version of your app:
+The dev server can be accessed on http://localhost:5173. API requests and
+signin/signout are proxied to an actual Sourcegraph instance,
+https://sourcegraph.com by default (can be overwritten via the
+`SOURCEGRAPH_API_URL` environment variable.
 
-```bash
-npm run build
-```
+## Production build
 
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+It's not currently not possible yet to create a production build of the
+application.
