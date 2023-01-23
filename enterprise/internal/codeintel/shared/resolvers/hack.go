@@ -320,7 +320,7 @@ func NewHackResolver(
 
 	var indexResolver resolverstubs.LSIFIndexResolver
 	if index != nil {
-		indexResolver = NewIndexResolver(autoindexingSvc, uploadsSvc, policySvc, *index, prefetcher, traceErrs)
+		indexResolver = NewIndexResolver(autoindexingSvc, uploadsSvc, policySvc, *index, prefetcher, locationResolver, traceErrs)
 	}
 
 	return &hackResolver{

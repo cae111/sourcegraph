@@ -235,7 +235,6 @@ func (s *scipWriter) flush(ctx context.Context) error {
 				hashes = append(hashes, document.payloadHash)
 			}
 		}
-
 		idsByHash, err := scanIDsByHash(s.db.Query(ctx, sqlf.Sprintf(scipWriterWriteFetchDocumentsQuery, pq.Array(hashes))))
 		if err != nil {
 			return err
