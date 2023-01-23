@@ -112,6 +112,9 @@ func testKeyValue(t *testing.T, kv redispool.KeyValue) {
 		require.AllEqual(kv.LRange("list", -5, -1), bytes("0", "1", "2", "3", "4"))
 		require.AllEqual(kv.LRange("list", 0, 4), bytes("0", "1", "2", "3", "4"))
 
+		// If stop < start we return nothing
+		require.AllEqual(kv.LRange("list", -1, 0), bytes())
+
 		// Subsets
 		require.AllEqual(kv.LRange("list", 1, 3), bytes("1", "2", "3"))
 		require.AllEqual(kv.LRange("list", 1, -2), bytes("1", "2", "3"))
@@ -132,6 +135,11 @@ func testKeyValue(t *testing.T, kv redispool.KeyValue) {
 		require.AllEqual(kv.LRange("list", 0, 4), bytes("1", "2", "3"))
 		require.ListLen(kv, "list", 3)
 
+		// Trim all
+		require.Works(kv.LTrim("list", -1, -2))
+		require.AllEqual(kv.LRange("list", 0, 4), bytes())
+		require.ListLen(kv, "list", 0)
+
 		require.Works(kv.LPush("funky2D", []byte{100, 255}))
 		require.Works(kv.LPush("funky2D", []byte{0, 10}))
 		require.AllEqual(kv.LRange("funky2D", 0, -1), [][]byte{{0, 10}, {100, 255}})
@@ -144,6 +152,9 @@ func testKeyValue(t *testing.T, kv redispool.KeyValue) {
 		if testing.Short() {
 			t.Skip()
 		}
+
+		// TODO test expire works on different data types after mutation.
+		// Check that expire works after incr.
 
 		// SetEx, Expire and TTL
 		require.Works(kv.SetEx("expires-setex", 60, "1"))
