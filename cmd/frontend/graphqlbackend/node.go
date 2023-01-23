@@ -233,6 +233,11 @@ func (r *NodeResolver) ToLSIFIndex() (resolverstubs.LSIFIndexResolver, bool) {
 	return n, ok
 }
 
+func (r *NodeResolver) ToHack() (resolverstubs.HackResolver, bool) {
+	n, ok := r.Node.(resolverstubs.HackResolver)
+	return n, ok
+}
+
 func (r *NodeResolver) ToCodeIntelligenceConfigurationPolicy() (resolverstubs.CodeIntelligenceConfigurationPolicyResolver, bool) {
 	n, ok := r.Node.(resolverstubs.CodeIntelligenceConfigurationPolicyResolver)
 	return n, ok

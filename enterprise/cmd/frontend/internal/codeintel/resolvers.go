@@ -14,6 +14,7 @@ type Resolver struct {
 	codenavResolver          resolverstubs.CodeNavServiceResolver
 	policiesRootResolver     resolverstubs.PoliciesServiceResolver
 	uploadsRootResolver      resolverstubs.UploadsServiceResolver
+	hackServiceResolver      resolverstubs.HackServiceResolver
 }
 
 func newResolver(
@@ -21,12 +22,14 @@ func newResolver(
 	codenavResolver resolverstubs.CodeNavServiceResolver,
 	policiesRootResolver resolverstubs.PoliciesServiceResolver,
 	uploadsRootResolver resolverstubs.UploadsServiceResolver,
+	hackServiceResolver resolverstubs.HackServiceResolver,
 ) *Resolver {
 	return &Resolver{
 		autoIndexingRootResolver: autoIndexingRootResolver,
 		codenavResolver:          codenavResolver,
 		policiesRootResolver:     policiesRootResolver,
 		uploadsRootResolver:      uploadsRootResolver,
+		hackServiceResolver:      hackServiceResolver,
 	}
 }
 
@@ -41,6 +44,9 @@ func (r *Resolver) NodeResolvers() map[string]gql.NodeByIDFunc {
 		"CodeIntelligenceConfigurationPolicy": func(ctx context.Context, id graphql.ID) (gql.Node, error) {
 			return r.ConfigurationPolicyByID(ctx, id)
 		},
+		"Hack": func(ctx context.Context, id graphql.ID) (gql.Node, error) {
+			return r.HackByID(ctx, id)
+		},
 	}
 }
 
@@ -50,6 +56,14 @@ func (r *Resolver) LSIFUploadByID(ctx context.Context, id graphql.ID) (_ resolve
 
 func (r *Resolver) LSIFUploads(ctx context.Context, args *resolverstubs.LSIFUploadsQueryArgs) (_ resolverstubs.LSIFUploadConnectionResolver, err error) {
 	return r.uploadsRootResolver.LSIFUploads(ctx, args)
+}
+
+func (r *Resolver) Hack(ctx context.Context, args *resolverstubs.HackQueryArgs) (_ resolverstubs.HackConnectionResolver, err error) {
+	return r.hackServiceResolver.Hack(ctx, args)
+}
+
+func (r *Resolver) HackByID(ctx context.Context, id graphql.ID) (_ resolverstubs.HackResolver, err error) {
+	return r.hackServiceResolver.HackByID(ctx, id)
 }
 
 func (r *Resolver) LSIFUploadsByRepo(ctx context.Context, args *resolverstubs.LSIFRepositoryUploadsQueryArgs) (_ resolverstubs.LSIFUploadConnectionResolver, err error) {

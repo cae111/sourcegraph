@@ -22,6 +22,7 @@ type RootResolver interface {
 	AutoindexingServiceResolver
 	UploadsServiceResolver
 	PoliciesServiceResolver
+	HackServiceResolver
 }
 
 type CodeNavServiceResolver interface {
@@ -56,6 +57,7 @@ type UploadsServiceResolver interface {
 	DeleteLSIFUpload(ctx context.Context, args *struct{ ID graphql.ID }) (*EmptyResponse, error)
 	DeleteLSIFUploads(ctx context.Context, args *DeleteLSIFUploadsArgs) (*EmptyResponse, error)
 }
+
 type PoliciesServiceResolver interface {
 	CodeIntelligenceConfigurationPolicies(ctx context.Context, args *CodeIntelligenceConfigurationPoliciesArgs) (CodeIntelligenceConfigurationPolicyConnectionResolver, error)
 	ConfigurationPolicyByID(ctx context.Context, id graphql.ID) (CodeIntelligenceConfigurationPolicyResolver, error)
@@ -74,6 +76,18 @@ type CodeIntelRepositorySummaryResolver interface {
 	AvailableIndexers() []InferredAvailableIndexersResolver
 }
 
+type HackServiceResolver interface {
+	HackByID(ctx context.Context, id graphql.ID) (HackResolver, error)
+	Hack(ctx context.Context, args *HackQueryArgs) (HackConnectionResolver, error)
+}
+
+type HackQueryArgs struct {
+	graphqlutil.ConnectionArgs
+	After  *string
+	Query  *string
+	States *[]string
+}
+
 type LSIFIndexConnectionResolver interface {
 	Nodes(ctx context.Context) ([]LSIFIndexResolver, error)
 	TotalCount(ctx context.Context) (*int32, error)
@@ -84,6 +98,36 @@ type LSIFUploadConnectionResolver interface {
 	Nodes(ctx context.Context) ([]LSIFUploadResolver, error)
 	TotalCount(ctx context.Context) (*int32, error)
 	PageInfo(ctx context.Context) (PageInfo, error)
+}
+
+type HackConnectionResolver interface {
+	Nodes(ctx context.Context) ([]HackResolver, error)
+	TotalCount(ctx context.Context) (*int32, error)
+	PageInfo(ctx context.Context) (PageInfo, error)
+}
+
+type HackResolver interface {
+	ID() graphql.ID
+	ProjectRoot(ctx context.Context) (GitTreeEntryResolver, error)
+	InputCommit() string
+	Tags(ctx context.Context) ([]string, error)
+	InputRoot() string
+	InputIndexer() string
+	Indexer() CodeIntelIndexerResolver
+	State() string
+	QueuedAt() *gqlutil.DateTime
+	UploadedAt() *gqlutil.DateTime
+	IndexingStartedAt() *gqlutil.DateTime
+	ProcessingStartedAt() *gqlutil.DateTime
+	IndexingFinishedAt() *gqlutil.DateTime
+	ProcessingFinishedAt() *gqlutil.DateTime
+	Steps() IndexStepsResolver
+	Failure() *string
+	PlaceInQueue() *int32
+	ShouldReindex(ctx context.Context) bool
+	IsLatestForRepo() bool
+	RetentionPolicyOverview(ctx context.Context, args *LSIFUploadRetentionPolicyMatchesArgs) (CodeIntelligenceRetentionPolicyMatchesConnectionResolver, error)
+	AuditLogs(ctx context.Context) (*[]LSIFUploadsAuditLogsResolver, error)
 }
 
 type PageInfo interface {

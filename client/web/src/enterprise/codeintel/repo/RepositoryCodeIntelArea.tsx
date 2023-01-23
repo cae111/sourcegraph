@@ -22,6 +22,8 @@ import { CodeIntelUploadPageProps } from '../uploads/pages/CodeIntelUploadPage'
 import { CodeIntelUploadsPageProps } from '../uploads/pages/CodeIntelUploadsPage'
 
 import { CodeIntelSidebar, CodeIntelSideBarGroups } from './CodeIntelSidebar'
+import { CodeIntelHackListPageProps } from '../hack/pages/CodeIntelHackListPage'
+import { CodeIntelHackPageProps } from '../hack/pages/CodeIntelHackPage'
 
 export interface CodeIntelAreaRouteContext extends ThemeProps, TelemetryProps {
     repo: { id: string; name: string }
@@ -30,6 +32,14 @@ export interface CodeIntelAreaRouteContext extends ThemeProps, TelemetryProps {
 
 export interface CodeIntelAreaRoute extends RouteDescriptor<CodeIntelAreaRouteContext> {}
 
+const CodeIntelHackListPage = lazyComponent<CodeIntelHackListPageProps, 'CodeIntelHackListPage'>(
+    () => import('../hack/pages/CodeIntelHackListPage'),
+    'CodeIntelHackListPage'
+)
+const CodeIntelHackPage = lazyComponent<CodeIntelHackPageProps, 'CodeIntelHackPage'>(
+    () => import('../hack/pages/CodeIntelHackPage'),
+    'CodeIntelHackPage'
+)
 const CodeIntelUploadsPage = lazyComponent<CodeIntelUploadsPageProps, 'CodeIntelUploadsPage'>(
     () => import('../uploads/pages/CodeIntelUploadsPage'),
     'CodeIntelUploadsPage'
@@ -75,7 +85,17 @@ export const routes: readonly CodeIntelAreaRoute[] = [
     {
         path: '/',
         exact: true,
-        render: () => <Redirect to="./code-graph/uploads" />,
+        render: () => <Redirect to="./code-graph/hack" />,
+    },
+    {
+        path: '/hack',
+        exact: true,
+        render: props => <CodeIntelHackListPage {...props} />,
+    },
+    {
+        path: '/hack/:id',
+        exact: true,
+        render: props => <CodeIntelHackPage {...props} />,
     },
     {
         path: '/uploads',
@@ -146,6 +166,10 @@ const sidebarRoutes: CodeIntelSideBarGroups = [
     {
         header: { label: 'Code graph data' },
         items: [
+            {
+                to: '/hack',
+                label: 'Hack',
+            },
             {
                 to: '/uploads',
                 label: 'Uploads',

@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"encoding/base64"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -11,7 +12,10 @@ import (
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/uploads/shared"
 	"github.com/sourcegraph/sourcegraph/internal/api"
 	resolverstubs "github.com/sourcegraph/sourcegraph/internal/codeintel/resolvers"
+	"github.com/sourcegraph/sourcegraph/internal/lazyregexp"
 )
+
+var hackPattern = lazyregexp.New(`^U:(\d+)(I:\d+)?$`)
 
 func unmarshalLSIFUploadGQLID(id graphql.ID) (uploadID int64, err error) {
 	// First, try to unmarshal the ID as a string and then convert it to an
@@ -21,6 +25,12 @@ func unmarshalLSIFUploadGQLID(id graphql.ID) (uploadID int64, err error) {
 	var idString string
 	err = relay.UnmarshalSpec(id, &idString)
 	if err == nil {
+		// TODO - document
+		if match := hackPattern.FindStringSubmatch(idString); len(match) > 0 {
+			fmt.Printf("%q -> %q\n", idString, match[1])
+			idString = match[1]
+		}
+
 		uploadID, err = strconv.ParseInt(idString, 10, 64)
 		return
 	}
