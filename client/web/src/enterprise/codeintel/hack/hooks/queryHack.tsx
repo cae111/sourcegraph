@@ -1,12 +1,9 @@
 import { ApolloClient } from '@apollo/client'
 import { Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
-
 import { ErrorLike } from '@sourcegraph/common'
 import { fromObservableQuery, getDocumentNode, gql } from '@sourcegraph/http-client'
-
 import { HackFields, HackResult } from '../../../../graphql-operations'
-
 import { hackFieldsFragment } from './types'
 
 const HACK_FIELDS = gql`

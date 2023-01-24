@@ -83,9 +83,11 @@ type HackServiceResolver interface {
 
 type HackQueryArgs struct {
 	graphqlutil.ConnectionArgs
-	After  *string
-	Query  *string
-	States *[]string
+	After        *string
+	Query        *string
+	States       *[]string
+	DependencyOf *string
+	DependentOf  *string
 }
 
 type LSIFIndexConnectionResolver interface {

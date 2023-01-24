@@ -207,7 +207,14 @@ extend type Query {
         after: String
     ): CodeIntelligenceConfigurationPolicyConnection!
 
-    hack(query: String, states: [HackState!], first: Int, after: String): HackConnection!
+    hack(
+        query: String
+        states: [HackState!]
+        dependencyOf: ID
+        dependentOf: ID
+        first: Int
+        after: String
+    ): HackConnection!
 
     """
     The repository's LSIF uploads.

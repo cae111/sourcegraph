@@ -151,7 +151,26 @@ func (r *hackServiceResolver) Hack(ctx context.Context, args *resolverstubs.Hack
 	skipUploads := len(uploadStates) == 0 && len(indexStates) != 0
 	skipIndexes := len(uploadStates) != 0 && len(indexStates) == 0
 
-	fmt.Printf("> %v %v\n> %v %v\n", uploadStates, indexStates, skipUploads, skipIndexes)
+	var dependencyOf int
+	if args.DependencyOf != nil {
+		v, err := unmarshalHackGQLID(graphql.ID(*args.DependencyOf))
+		if err != nil {
+			return nil, err
+		}
+
+		dependencyOf = int(v)
+		skipIndexes = true
+	}
+	var dependentOf int
+	if args.DependentOf != nil {
+		v, err := unmarshalHackGQLID(graphql.ID(*args.DependentOf))
+		if err != nil {
+			return nil, err
+		}
+
+		dependentOf = int(v)
+		skipIndexes = true
+	}
 
 	term := ""
 	if args.Query != nil {
@@ -162,10 +181,12 @@ func (r *hackServiceResolver) Hack(ctx context.Context, args *resolverstubs.Hack
 	totalUploadCount := 0
 	if !skipUploads {
 		if uploads, totalUploadCount, err = r.uploadsService.GetUploads(ctx, uploadsshared.GetUploadsOptions{
-			States: uploadStates,
-			Term:   term,
-			Limit:  pageSize,
-			Offset: uploadOffset,
+			States:       uploadStates,
+			Term:         term,
+			DependencyOf: dependencyOf,
+			DependentOf:  dependentOf,
+			Limit:        pageSize,
+			Offset:       uploadOffset,
 		}); err != nil {
 			return nil, err
 		}

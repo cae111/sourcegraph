@@ -58,14 +58,14 @@ import { EmptyDependencies } from '../../uploads/components/EmptyDependencies'
 import { EmptyDependents } from '../../uploads/components/EmptyDependents'
 import { EmptyUploadRetentionMatchStatus } from '../../uploads/components/EmptyUploadRetentionStatusNode'
 import { RetentionMatchNode } from '../../uploads/components/UploadRetentionStatusNode'
-import { queryLsifUploadsList } from '../../uploads/hooks/queryLsifUploadsList'
+import { queryHackDependencyGraph } from '../hooks/queryHackDependencyGraph'
+
+import styles from './CodeIntelHackPage.module.scss'
+import { UploadAuditLogTimeline } from '../../uploads/components/UploadAuditLogTimeline'
 import {
     NormalizedUploadRetentionMatch,
     queryUploadRetentionMatches,
 } from '../../uploads/hooks/queryUploadRetentionMatches'
-
-import styles from './CodeIntelHackPage.module.scss'
-import { UploadAuditLogTimeline } from '../../uploads/components/UploadAuditLogTimeline'
 
 export interface CodeIntelHackPageProps extends RouteComponentProps<{ id: string }>, ThemeProps, TelemetryProps {
     now?: () => Date
@@ -109,22 +109,22 @@ export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
     const queryDependencies = useCallback(
         (args: FilteredConnectionQueryArguments): Observable<LsifUploadConnectionFields> => {
             if (hackOrError && !isErrorLike(hackOrError)) {
-                return queryLsifUploadsList({ ...args, dependencyOf: hackOrError.id }, apolloClient)
+                return queryHackDependencyGraph({ ...args, dependencyOf: hackOrError.id }, apolloClient)
             }
             throw new Error('unreachable: queryDependencies referenced with invalid upload')
         },
-        [hackOrError, queryLsifUploadsList, apolloClient]
+        [hackOrError, queryHackDependencyGraph, apolloClient]
     )
 
     const queryDependents = useCallback(
         (args: FilteredConnectionQueryArguments) => {
             if (hackOrError && !isErrorLike(hackOrError)) {
-                return queryLsifUploadsList({ ...args, dependentOf: hackOrError.id }, apolloClient)
+                return queryHackDependencyGraph({ ...args, dependentOf: hackOrError.id }, apolloClient)
             }
 
             throw new Error('unreachable: queryDependents referenced with invalid upload')
         },
-        [hackOrError, queryLsifUploadsList, apolloClient]
+        [hackOrError, queryHackDependencyGraph, apolloClient]
     )
 
     const queryRetentionPoliciesCallback = useCallback(
