@@ -8,8 +8,16 @@
 
 	import type { PageData } from "./$types";
 	import Paginator from '$lib/Paginator.svelte';
+	import { Button, ButtonGroup } from '$lib/wildcard';
 
     export let data: PageData
+
+    const timePeriodButtons = [
+        ['Last 7 days', '7 days ago'],
+        ['Last 30 days', '30 days ago'],
+        ['Last year', '1 year ago'],
+        ['All time', ''],
+    ]
 
     $: timePeriod = data.after
     $: contributorsLoader = data.contributors
@@ -23,7 +31,7 @@
         const element = event.target as HTMLButtonElement
         timePeriod = element.dataset.value ?? ''
         const newURL = new URL($page.url)
-        newURL.search = `after=${timePeriod}`
+        newURL.search = timePeriod ? `after=${timePeriod}` : ''
         connection = null
         await goto(newURL)
     }
@@ -32,13 +40,18 @@
     <div class="container">
         <form method="GET">
             Time period: <input name="after" bind:value={timePeriod} placeholder="All time"/>
-            <button type="button" data-value="7 days ago" on:click={setTimePeriod}>Last 7 days</button>
-            <button type="button" data-value="30 days ago" on:click={setTimePeriod}>Last 30 days</button>
-            <button type="button" data-value="1 year ago" on:click={setTimePeriod}>Last year</button>
-            <button type="button" data-value="" on:click={setTimePeriod}>All time</button>
+            <ButtonGroup>
+                {#each timePeriodButtons as [label, value]}
+                    <Button variant="secondary">
+                        <button slot="custom" let:className class={className} class:active={timePeriod === value} type="button" data-value={value} on:click={setTimePeriod}>{label}</button>
+                    </Button>
+                {/each}
+            </ButtonGroup>
         </form>
         {#if !connection && loading}
-            <LoadingSpinner />
+            <div class="mt-3">
+                <LoadingSpinner />
+            </div>
         {:else if connection}
             {@const nodes = connection.nodes}
             <table class="mt-3">
@@ -55,7 +68,7 @@
             </table>
             <div class="d-flex flex-column align-items-center">
                 <Paginator disabled={loading} pageInfo={connection.pageInfo} />
-                <p>
+                <p class="mt-1 text-muted">
                     <small>Total contributors: {connection.totalCount}</small>
                 </p>
             </div>

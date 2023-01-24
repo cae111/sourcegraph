@@ -22,6 +22,7 @@
 	import Icon from "./Icon.svelte";
 	import { mdiPageFirst, mdiPageLast, mdiChevronRight, mdiChevronLeft } from '@mdi/js';
     import {page} from '$app/stores'
+	import { Button } from "./wildcard";
 
     export let pageInfo: {hasPreviousPage: boolean, hasNextPage: boolean, startCursor: string|null, endCursor: string|null}
     export let disabled: boolean
@@ -37,30 +38,55 @@
         return url.toString()
     }
 
+    function preventClickOnDisabledLink(event: MouseEvent) {
+        const target = event.target as HTMLElement
+        if (target.closest('a[aria-disabled="true"]')) {
+            event.preventDefault()
+        }
+    }
+
     let firstPageURL = urlWithParameter('', null)
     let lastPageURL = urlWithParameter(Param.last, '')
     $: previousPageURL = urlWithParameter(Param.before, pageInfo.startCursor)
     $: nextPageURL = urlWithParameter(Param.after, pageInfo.endCursor)
+    $: firstAndPreviousDisabled = disabled || !pageInfo.hasPreviousPage
+    $: nextAndLastDisabled = disabled || !pageInfo.hasNextPage
 </script>
 
-<div>
-    <a href={firstPageURL} class:disabled={disabled||!pageInfo.hasPreviousPage}><Icon svgPath={mdiPageFirst} inline /></a>
-    <a href={previousPageURL} class:disabled={disabled||!pageInfo.hasPreviousPage}><Icon svgPath={mdiChevronLeft} inline />Previous</a>
-    <a href={nextPageURL} class:disabled={disabled||!pageInfo.hasNextPage}>Next <Icon svgPath={mdiChevronRight} inline /></a>
-    <a href={lastPageURL} class:disabled={disabled||!pageInfo.hasNextPage}><Icon svgPath={mdiPageLast} inline /></a>
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- The event handler is used for event delegation -->
+<div on:click={preventClickOnDisabledLink}>
+    <Button variant="secondary" outline>
+        <a slot="custom" let:className href={firstPageURL} class={className} aria-disabled={firstAndPreviousDisabled}>
+            <Icon svgPath={mdiPageFirst} inline />
+        </a>
+    </Button>
+    <Button variant="secondary" outline>
+        <a slot="custom" let:className class={className} href={previousPageURL} aria-disabled={firstAndPreviousDisabled}>
+            <Icon svgPath={mdiChevronLeft} inline />Previous
+        </a>
+    </Button>
+    <Button variant="secondary" outline>
+        <a slot="custom" let:className class={className} href={nextPageURL} aria-disabled={nextAndLastDisabled}>
+            Next <Icon svgPath={mdiChevronRight} inline />
+        </a>
+    </Button>
+    <Button variant="secondary" outline>
+        <a slot="custom" let:className class={className} href={lastPageURL} aria-disabled={nextAndLastDisabled}>
+            <Icon svgPath={mdiPageLast} inline />
+        </a>
+    </Button>
 </div>
 
 <style lang="scss">
     a {
         color: var(--body-color);
-        padding: 0.125rem 0.5rem;
-        border-radius: var(--border-radius);
-        border: 1px solid var(--border-color);
 
-        &.disabled {
-            pointer-events: none;
-            cursor: not-allowed;
-            color: var(--text-muted);
+        &:first-child {
+            margin-right: 1rem;
+        }
+        &:last-child {
+            margin-left: 1rem;
         }
     }
 </style>
