@@ -77,7 +77,10 @@ import { CodeIntelUploadOrIndexIndexer } from '../../shared/components/CodeIntel
 import { formatDurationLong } from '../../../../util/time'
 import { CodeIntelState } from '../../shared/components/CodeIntelState'
 
-export interface CodeIntelHackPageProps extends RouteComponentProps<{ id: string }>, ThemeProps, TelemetryProps {
+export interface CodeIntelPreciseIndexPageProps
+    extends RouteComponentProps<{ id: string }>,
+        ThemeProps,
+        TelemetryProps {
     now?: () => Date
 }
 
@@ -97,7 +100,7 @@ const variantByState = new Map<PreciseIndexState, AlertProps['variant']>([
     [PreciseIndexState.PROCESSING_ERRORED, 'danger'],
 ])
 
-export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
+export const CodeIntelPreciseIndexPage: FunctionComponent<CodeIntelPreciseIndexPageProps> = ({
     match: {
         params: { id },
     },

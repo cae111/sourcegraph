@@ -37,7 +37,7 @@ import { of, Subject } from 'rxjs'
 import { PageTitle } from '../../../../components/PageTitle'
 import { queryCommitGraph } from '../hooks/queryCommitGraph'
 
-export interface CodeIntelHackListPageProps extends RouteComponentProps<{}>, ThemeProps, TelemetryProps {
+export interface CodeIntelPreciseIndexesPageProps extends RouteComponentProps<{}>, ThemeProps, TelemetryProps {
     authenticatedUser: AuthenticatedUser | null
     repo?: { id: string }
     now?: () => Date
@@ -90,7 +90,7 @@ const filters: FilteredConnectionFilter[] = [
     },
 ]
 
-export const CodeIntelHackListPage: FunctionComponent<CodeIntelHackListPageProps> = ({
+export const CodeIntelPreciseIndexesPage: FunctionComponent<CodeIntelPreciseIndexesPageProps> = ({
     authenticatedUser,
     repo,
     now,
