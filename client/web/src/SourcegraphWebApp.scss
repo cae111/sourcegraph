@@ -9,7 +9,7 @@ It should import all component stylesheets.
 // Use duplicate selectors for the light-theme
 // stylelint-disable no-duplicate-selectors
 
-@import '../../wildcard/src/global-styles/index.scss';
+@import 'wildcard/src/global-styles';
 
 // Document highlight is the background color for tokens which are matched with
 // a result from a document highlight provider. e.g. for references of the token
