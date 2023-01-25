@@ -18,7 +18,7 @@ import { CodeIntelInferenceConfigurationPageProps } from '../configuration/pages
 import { CodeIntelRepositoryIndexConfigurationPageProps } from '../configuration/pages/CodeIntelRepositoryIndexConfigurationPage'
 import { CodeIntelIndexPageProps } from '../indexes/pages/CodeIntelIndexPage'
 
-import { CodeIntelPreciseIndexesPageProps } from '../preciseIndexes/pages/CodeIntelPreciseIndexesPage'
+import { CodeIntelPreciseIndexesPageProps } from '../indexes/pages/CodeIntelPreciseIndexesPage'
 import { CodeIntelSidebar, CodeIntelSideBarGroups } from './CodeIntelSidebar'
 
 export interface CodeIntelAreaRouteContext extends ThemeProps, TelemetryProps {
@@ -29,11 +29,11 @@ export interface CodeIntelAreaRouteContext extends ThemeProps, TelemetryProps {
 export interface CodeIntelAreaRoute extends RouteDescriptor<CodeIntelAreaRouteContext> {}
 
 const CodeIntelPreciseIndexesPage = lazyComponent<CodeIntelPreciseIndexesPageProps, 'CodeIntelPreciseIndexesPage'>(
-    () => import('../preciseIndexes/pages/CodeIntelPreciseIndexesPage'),
+    () => import('../indexes/pages/CodeIntelPreciseIndexesPage'),
     'CodeIntelPreciseIndexesPage'
 )
 const CodeIntelPreciseIndexPage = lazyComponent<CodeIntelIndexPageProps, 'CodeIntelPreciseIndexPage'>(
-    () => import('../preciseIndexes/pages/CodeIntelPreciseIndexPage'),
+    () => import('../indexes/pages/CodeIntelPreciseIndexPage'),
     'CodeIntelPreciseIndexPage'
 )
 

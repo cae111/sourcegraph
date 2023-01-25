@@ -111,7 +111,7 @@ export const enterpriseSiteAdminAreaRoutes: readonly SiteAdminAreaRoute[] = (
         {
             path: '/code-graph/indexes',
             render: lazyComponent(
-                () => import('../codeintel/preciseIndexes/pages/CodeIntelPreciseIndexesPage'),
+                () => import('../codeintel/indexes/pages/CodeIntelPreciseIndexesPage'),
                 'CodeIntelPreciseIndexesPage'
             ),
             exact: true,
@@ -119,7 +119,7 @@ export const enterpriseSiteAdminAreaRoutes: readonly SiteAdminAreaRoute[] = (
         {
             path: '/code-graph/indexes/:id',
             render: lazyComponent(
-                () => import('../codeintel/preciseIndexes/pages/CodeIntelPreciseIndexPage'),
+                () => import('../codeintel/indexes/pages/CodeIntelPreciseIndexPage'),
                 'CodeIntelPreciseIndexPage'
             ),
             exact: true,

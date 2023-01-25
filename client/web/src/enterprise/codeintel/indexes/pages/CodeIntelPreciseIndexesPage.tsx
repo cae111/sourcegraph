@@ -1,6 +1,6 @@
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react'
 
-import { RouteComponentProps } from 'react-router'
+import { RouteComponentProps, useLocation } from 'react-router'
 
 import { useApolloClient } from '@apollo/client'
 import { TelemetryProps } from '@sourcegraph/shared/src/telemetry/telemetryService'
@@ -18,6 +18,7 @@ import {
     Alert,
     Badge,
     Button,
+    Checkbox,
     Code,
     Container,
     ErrorAlert,
@@ -28,6 +29,7 @@ import {
     Link,
     LoadingSpinner,
     PageHeader,
+    Tooltip,
     useObservable,
 } from '@sourcegraph/wildcard'
 import * as H from 'history'
@@ -40,6 +42,12 @@ import classNames from 'classnames'
 import { of, Subject } from 'rxjs'
 import { PageTitle } from '../../../../components/PageTitle'
 import { queryCommitGraph } from '../hooks/queryCommitGraph'
+import { FlashMessage } from '../../configuration/components/FlashMessage'
+import { useDeleteLsifIndex } from '../hooks/useDeleteLsifIndex'
+import { useDeleteLsifIndexes } from '../hooks/useDeleteLsifIndexes'
+import { useReindexLsifIndex } from '../hooks/useReindexLsifIndex'
+import { useReindexLsifIndexes } from '../hooks/useReindexLsifIndexes'
+import { isErrorLike } from '@sourcegraph/common'
 
 export interface CodeIntelPreciseIndexesPageProps extends RouteComponentProps<{}>, ThemeProps, TelemetryProps {
     authenticatedUser: AuthenticatedUser | null
@@ -100,13 +108,46 @@ export const CodeIntelPreciseIndexesPage: FunctionComponent<CodeIntelPreciseInde
     now,
     telemetryService,
     history,
-    location,
 }) => {
-    useEffect(() => telemetryService.logViewEvent('CodeIntelHackListPage'), [telemetryService])
+    useEffect(() => telemetryService.logViewEvent('CodeIntelPreciseIndexesPage'), [telemetryService])
+    const location = useLocation<{ message: string; modal: string }>()
+
+    const [args, setArgs] = useState<any>()
+    const [selection, setSelection] = useState<Set<string> | 'all'>(new Set())
+    const onCheckboxToggle = useCallback((id: string, checked: boolean): void => {
+        setSelection(selection => {
+            if (selection === 'all') {
+                return selection
+            }
+            if (checked) {
+                selection.add(id)
+            } else {
+                selection.delete(id)
+            }
+            return new Set(selection)
+        })
+    }, [])
+
+    const { handleDeleteLsifIndex, deleteError } = useDeleteLsifIndex()
+    const { handleDeleteLsifIndexes, deletesError } = useDeleteLsifIndexes()
+    const { handleReindexLsifIndex, reindexError } = useReindexLsifIndex()
+    const { handleReindexLsifIndexes, reindexesError } = useReindexLsifIndexes()
+
+    const deletes = useMemo(() => new Subject<undefined>(), [])
 
     const apolloClient = useApolloClient()
     const queryHackListCallback = useCallback(
         (args: FilteredConnectionQueryArguments) => {
+            setArgs({
+                query: args.query ?? null,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+                state: (args as any).state ?? null,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+                isLatestForRepo: (args as any).isLatestForRepo ?? null,
+                repository: repo?.id ?? null,
+            })
+            setSelection(new Set())
+
             return queryPreciseIndexes({ ...args, repo: repo?.id }, apolloClient)
         },
         [queryPreciseIndexes, apolloClient]
@@ -137,6 +178,8 @@ export const CodeIntelPreciseIndexesPage: FunctionComponent<CodeIntelPreciseInde
                 description={'Precise code intelligence index data and auto-indexing jobs.'}
                 className="mb-3"
             />
+
+            {!!location.state && <FlashMessage state={location.state.modal} message={location.state.message} />}
 
             {repo && (
                 <>
@@ -169,7 +212,103 @@ export const CodeIntelPreciseIndexesPage: FunctionComponent<CodeIntelPreciseInde
                 </>
             )}
 
-            <div>TODO - DELETE AND REINDEX BUTTONS</div>
+            <div className="mb-3">
+                <Button
+                    className="mr-2"
+                    variant="primary"
+                    disabled={selection !== 'all' && selection.size === 0}
+                    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                    onClick={async () => {
+                        if (selection === 'all') {
+                            if (args === undefined) {
+                                return
+                            }
+
+                            if (
+                                !confirm(
+                                    `Delete all uploads matching the filter criteria?\n\n${Object.entries(args)
+                                        .map(([key, value]) => `${key}: ${value}`)
+                                        .join('\n')}`
+                                )
+                            ) {
+                                return
+                            }
+
+                            await handleDeleteLsifIndexes({
+                                variables: args,
+                                update: cache => cache.modify({ fields: { node: () => {} } }),
+                            })
+
+                            deletes.next()
+
+                            return
+                        }
+
+                        for (const id of selection) {
+                            await handleDeleteLsifIndex({
+                                variables: { id },
+                                update: cache => cache.modify({ fields: { node: () => {} } }),
+                            })
+                        }
+
+                        deletes.next()
+                    }}
+                >
+                    Delete {selection === 'all' ? 'matching' : selection.size === 0 ? '' : selection.size}
+                </Button>
+                <Button
+                    className="mr-2"
+                    variant="primary"
+                    disabled={selection !== 'all' && selection.size === 0}
+                    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                    onClick={async () => {
+                        if (selection === 'all') {
+                            if (args === undefined) {
+                                return
+                            }
+
+                            if (
+                                !confirm(
+                                    `Reindex all uploads matching the filter criteria?\n\n${Object.entries(args)
+                                        .map(([key, value]) => `${key}: ${value}`)
+                                        .join('\n')}`
+                                )
+                            ) {
+                                return
+                            }
+
+                            await handleReindexLsifIndexes({
+                                variables: args,
+                                update: cache => cache.modify({ fields: { node: () => {} } }),
+                            })
+
+                            return
+                        }
+
+                        for (const id of selection) {
+                            await handleReindexLsifIndex({
+                                variables: { id },
+                                update: cache => cache.modify({ fields: { node: () => {} } }),
+                            })
+                        }
+                    }}
+                >
+                    Reindex {selection === 'all' ? 'matching' : selection.size === 0 ? '' : selection.size}
+                </Button>
+                <Button
+                    variant="secondary"
+                    onClick={() => setSelection(selection => (selection === 'all' ? new Set() : 'all'))}
+                >
+                    {selection === 'all' ? 'Deselect' : 'Select matching'}
+                </Button>
+            </div>
+
+            {isErrorLike(deleteError) && <ErrorAlert prefix="Error deleting LSIF upload" error={deleteError} />}
+            {isErrorLike(deletesError) && <ErrorAlert prefix="Error deleting LSIF uploads" error={deletesError} />}
+            {isErrorLike(reindexError) && <ErrorAlert prefix="Error reindexing LSIF upload" error={reindexError} />}
+            {isErrorLike(reindexesError) && (
+                <ErrorAlert prefix="Error reindexing LSIF uploads" error={reindexesError} />
+            )}
 
             <Container>
                 <div className="list-group position-relative">
@@ -181,7 +320,7 @@ export const CodeIntelPreciseIndexesPage: FunctionComponent<CodeIntelPreciseInde
                         pluralNoun="precise indexes"
                         querySubject={querySubject}
                         nodeComponent={HackNode}
-                        nodeComponentProps={{ history }}
+                        nodeComponentProps={{ selection, onCheckboxToggle, history }}
                         queryConnection={queryConnection}
                         history={history}
                         location={location}
@@ -199,12 +338,28 @@ export const CodeIntelPreciseIndexesPage: FunctionComponent<CodeIntelPreciseInde
 export interface HackNodeProps {
     node: PreciseIndexFields
     now?: () => Date
+    selection: Set<string> | 'all'
+    onCheckboxToggle: (id: string, checked: boolean) => void
     history: H.History
 }
 
-export const HackNode: FunctionComponent<React.PropsWithChildren<HackNodeProps>> = ({ node, now, history }) => (
+export const HackNode: FunctionComponent<React.PropsWithChildren<HackNodeProps>> = ({
+    node,
+    now,
+    selection,
+    onCheckboxToggle,
+    history,
+}) => (
     <>
         <span className={styles.separator} />
+
+        <Checkbox
+            label=""
+            id="disabledFieldsetCheck"
+            disabled={selection === 'all'}
+            checked={selection === 'all' ? true : selection.has(node.id)}
+            onChange={input => onCheckboxToggle(node.id, input.target.checked)}
+        />
 
         <div
             className={classNames(styles.information, 'd-flex flex-column')}
@@ -218,6 +373,11 @@ export const HackNode: FunctionComponent<React.PropsWithChildren<HackNodeProps>>
                         <span>Unknown repository</span>
                     )}
                 </H3>
+                {node.shouldReindex && (
+                    <Tooltip content="This index has been marked for reindexing.">
+                        <div className={classNames(styles.tag, 'ml-1 rounded')}>(marked for reindexing)</div>
+                    </Tooltip>
+                )}
             </div>
 
             <div>

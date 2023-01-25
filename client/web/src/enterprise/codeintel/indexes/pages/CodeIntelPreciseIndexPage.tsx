@@ -1,6 +1,6 @@
 import { FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 
-import { RouteComponentProps } from 'react-router'
+import { Redirect, RouteComponentProps } from 'react-router'
 
 import { useApolloClient } from '@apollo/client'
 import {
@@ -9,6 +9,7 @@ import {
     mdiCheckCircle,
     mdiDatabaseEdit,
     mdiDatabasePlus,
+    mdiDelete,
     mdiFileUpload,
     mdiInformationOutline,
     mdiMapSearch,
@@ -74,11 +75,14 @@ import {
     UploadReferenceMatch,
 } from '../hooks/queryPreciseIndexRetention'
 import styles from './CodeIntelPreciseIndexPage.module.scss'
+import { AuthenticatedUser } from '@sourcegraph/shared/src/auth'
+import { useDeleteLsifUpload } from '../hooks/useDeleteLsifUpload'
 
 export interface CodeIntelPreciseIndexPageProps
     extends RouteComponentProps<{ id: string }>,
         ThemeProps,
         TelemetryProps {
+    authenticatedUser: AuthenticatedUser | null
     now?: () => Date
 }
 
@@ -103,13 +107,18 @@ export const CodeIntelPreciseIndexPage: FunctionComponent<CodeIntelPreciseIndexP
         params: { id },
     },
     now,
+    authenticatedUser,
     history,
     location,
     telemetryService,
 }) => {
-    useEffect(() => telemetryService.logViewEvent('CodeIntelHackPage'), [telemetryService])
+    useEffect(() => telemetryService.logViewEvent('CodeIntelPreciseIndexPage'), [telemetryService])
 
     const apolloClient = useApolloClient()
+
+    const [deletionOrError, setDeletionOrError] = useState<'loading' | 'deleted' | ErrorLike>()
+    const { handleDeleteLsifUpload, deleteError } = useDeleteLsifUpload()
+
     const hackOrError = useObservable(
         useMemo(
             () => queryPreciseIndex(id, apolloClient).pipe(takeWhile(shouldReload, true)),
@@ -117,8 +126,53 @@ export const CodeIntelPreciseIndexPage: FunctionComponent<CodeIntelPreciseIndexP
         )
     )
 
+    useEffect(() => {
+        if (deleteError) {
+            setDeletionOrError(deleteError)
+        }
+    }, [deleteError])
+
     const [dependencyGraphState, setDependencyGraphState] = useState(DependencyGraphState.ShowDependencies)
     const [retentionPolicyMatcherState, setRetentionPolicyMatcherState] = useState(RetentionPolicyMatcherState.ShowAll)
+
+    const deleteUpload = useCallback(async (): Promise<void> => {
+        if (!hackOrError || isErrorLike(hackOrError)) {
+            return
+        }
+
+        let description = `${hackOrError.inputCommit.slice(0, 7)}`
+        if (hackOrError.inputRoot) {
+            description += ` rooted at ${hackOrError.inputRoot}`
+        }
+
+        if (!window.confirm(`Delete upload for commit ${description}?`)) {
+            return
+        }
+
+        setDeletionOrError('loading')
+
+        try {
+            await handleDeleteLsifUpload({
+                variables: { id },
+                update: cache => cache.modify({ fields: { node: () => {} } }),
+            })
+            setDeletionOrError('deleted')
+            history.push({
+                state: {
+                    modal: 'SUCCESS',
+                    message: `Upload for commit ${description} is deleting.`,
+                },
+            })
+        } catch (error) {
+            setDeletionOrError(error)
+            history.push({
+                state: {
+                    modal: 'ERROR',
+                    message: `There was an error while deleting upload for commit ${description}.`,
+                },
+            })
+        }
+    }, [id, hackOrError, handleDeleteLsifUpload, history])
 
     const queryDependencies = useCallback(
         (args: FilteredConnectionQueryArguments) => {
@@ -155,9 +209,15 @@ export const CodeIntelPreciseIndexPage: FunctionComponent<CodeIntelPreciseIndexP
         [hackOrError, apolloClient, id, queryPreciseIndexRetention, retentionPolicyMatcherState]
     )
 
-    return isErrorLike(hackOrError) ? (
+    return deletionOrError === 'deleted' ? (
+        <Redirect to="." />
+    ) : isErrorLike(deletionOrError) ? (
+        <ErrorAlert prefix="Error deleting precise index" error={deletionOrError} />
+    ) : isErrorLike(hackOrError) ? (
         <ErrorAlert prefix="Error fetching hack" error={hackOrError} />
-    ) : hackOrError ? (
+    ) : !hackOrError ? (
+        <LoadingSpinner />
+    ) : (
         <>
             <PageHeader
                 headingElement="h2"
@@ -168,6 +228,20 @@ export const CodeIntelPreciseIndexPage: FunctionComponent<CodeIntelPreciseIndexP
                 ]}
                 className="mb-3"
             />
+
+            {authenticatedUser?.siteAdmin && (
+                <>
+                    <Container className="mt-2">
+                        <CodeIntelDeleteUpload
+                            state={hackOrError.state}
+                            deleteUpload={deleteUpload}
+                            deletionOrError={deletionOrError}
+                        />
+                    </Container>
+
+                    <div>TODO - reindex button</div>
+                </>
+            )}
 
             <Container>
                 <Card>
@@ -299,8 +373,6 @@ export const CodeIntelPreciseIndexPage: FunctionComponent<CodeIntelPreciseIndexP
                     </div>
                 )}
 
-                <div>TODO - DELETE/REINDEX BUTTON</div>
-
                 <Container className="mt-2">
                     <HackTimeline hack={hackOrError} />
                 </Container>
@@ -430,8 +502,6 @@ export const CodeIntelPreciseIndexPage: FunctionComponent<CodeIntelPreciseIndexP
                 </Container>
             </Container>
         </>
-    ) : (
-        <></>
     )
 }
 
@@ -1038,3 +1108,30 @@ export const ExecutionMetaInformation: React.FunctionComponent<
         </div>
     </div>
 )
+
+export interface CodeIntelDeleteUploadProps {
+    state: PreciseIndexState
+    deleteUpload: () => Promise<void>
+    deletionOrError?: 'loading' | 'deleted' | ErrorLike
+}
+
+export const CodeIntelDeleteUpload: FunctionComponent<React.PropsWithChildren<CodeIntelDeleteUploadProps>> = ({
+    state,
+    deleteUpload,
+    deletionOrError,
+}) =>
+    state === PreciseIndexState.DELETING ? (
+        <></>
+    ) : (
+        <Tooltip
+            content={
+                state === PreciseIndexState.COMPLETED
+                    ? 'Deleting this upload will make it unavailable to answer code navigation queries the next time the repository commit graph is refreshed.'
+                    : 'Delete this upload immediately'
+            }
+        >
+            <Button type="button" variant="danger" onClick={deleteUpload} disabled={deletionOrError === 'loading'}>
+                <Icon aria-hidden={true} svgPath={mdiDelete} /> Delete upload
+            </Button>
+        </Tooltip>
+    )
