@@ -1,7 +1,7 @@
 import { gql } from '@sourcegraph/http-client'
 
-export const hackFieldsFragment = gql`
-    fragment HackFields on Hack {
+export const preciseIndexFieldsFragment = gql`
+    fragment PreciseIndexFields on PreciseIndex {
         __typename
         id
         projectRoot {
@@ -41,7 +41,7 @@ export const hackFieldsFragment = gql`
         isLatestForRepo
 
         auditLogs {
-            ...HackAuditLogFields
+            ...PreciseIndexAuditLogFields
         }
     }
 
@@ -81,7 +81,7 @@ export const hackFieldsFragment = gql`
         durationMilliseconds
     }
 
-    fragment HackAuditLogFields on LSIFUploadAuditLog {
+    fragment PreciseIndexAuditLogFields on LSIFUploadAuditLog {
         logTimestamp
         reason
         changedColumns {
@@ -93,10 +93,10 @@ export const hackFieldsFragment = gql`
     }
 `
 
-export const hackConnectionFieldsFragment = gql`
-    fragment HackConnectionFields on HackConnection {
+export const preciseIndexConnectionFieldsFragment = gql`
+    fragment PreciseIndexConnectionFields on PreciseIndexConnection {
         nodes {
-            ...HackFields
+            ...PreciseIndexFields
         }
         totalCount
         pageInfo {
@@ -105,5 +105,5 @@ export const hackConnectionFieldsFragment = gql`
         }
     }
 
-    ${hackFieldsFragment}
+    ${preciseIndexFieldsFragment}
 `

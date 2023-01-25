@@ -5,7 +5,11 @@ import { map } from 'rxjs/operators'
 import { getDocumentNode, gql } from '@sourcegraph/http-client'
 
 import { Connection } from '../../../../components/FilteredConnection'
-import { GitObjectType, HackRetentionResult, HackRetentionVariables } from '../../../../graphql-operations'
+import {
+    GitObjectType,
+    PreciseIndexRetentionResult,
+    PreciseIndexRetentionVariables,
+} from '../../../../graphql-operations'
 
 export const retentionByUploadTitle = 'Retention by reference'
 export const retentionByBranchTipTitle = 'Retention by tip of default branch'
@@ -38,10 +42,10 @@ export interface UploadReferenceMatch {
 }
 
 const UPLOAD_RETENTIONS_QUERY = gql`
-    query HackRetention($id: ID!, $matchesOnly: Boolean!, $after: String, $first: Int, $query: String) {
+    query PreciseIndexRetention($id: ID!, $matchesOnly: Boolean!, $after: String, $first: Int, $query: String) {
         node(id: $id) {
             __typename
-            ... on Hack {
+            ... on PreciseIndex {
                 retentionPolicyOverview(matchesOnly: $matchesOnly, query: $query, after: $after, first: $first) {
                     __typename
                     nodes {
@@ -65,7 +69,7 @@ const UPLOAD_RETENTIONS_QUERY = gql`
             }
         }
 
-        hack(dependentOf: $id) {
+        preciseIndexes(dependentOf: $id) {
             __typename
             totalCount
             nodes {
@@ -82,12 +86,17 @@ const UPLOAD_RETENTIONS_QUERY = gql`
         }
     }
 `
-export const queryHackRetention = (
+export const queryPreciseIndexRetention = (
     client: ApolloClient<object>,
     id: string,
-    { matchesOnly, after, first, query }: Partial<HackRetentionVariables> & Pick<HackRetentionVariables, 'matchesOnly'>
+    {
+        matchesOnly,
+        after,
+        first,
+        query,
+    }: Partial<PreciseIndexRetentionVariables> & Pick<PreciseIndexRetentionVariables, 'matchesOnly'>
 ): Observable<Connection<NormalizedUploadRetentionMatch>> => {
-    const variables: HackRetentionVariables = {
+    const variables: PreciseIndexRetentionVariables = {
         id,
         matchesOnly,
         query: query ?? null,
@@ -96,30 +105,30 @@ export const queryHackRetention = (
     }
 
     return from(
-        client.query<HackRetentionResult, HackRetentionVariables>({
+        client.query<PreciseIndexRetentionResult, PreciseIndexRetentionVariables>({
             query: getDocumentNode(UPLOAD_RETENTIONS_QUERY),
             variables: { ...variables },
         })
     ).pipe(
         map(({ data }) => {
             const { node, ...rest } = data
-            if (!node || node.__typename !== 'Hack') {
-                throw new Error('No such Hack')
+            if (!node || node.__typename !== 'PreciseIndex') {
+                throw new Error('No such precise index')
             }
 
             return { node, ...rest }
         }),
-        map(({ node, hack: hacks }) => {
+        map(({ node, preciseIndexes: indexes }) => {
             const conn: Connection<NormalizedUploadRetentionMatch> = {
-                totalCount: (node.retentionPolicyOverview.totalCount ?? 0) + ((hacks.totalCount ?? 0) > 0 ? 1 : 0),
+                totalCount: (node.retentionPolicyOverview.totalCount ?? 0) + ((indexes.totalCount ?? 0) > 0 ? 1 : 0),
                 nodes: [],
             }
 
-            if ((hacks.totalCount ?? 0) > 0 && retentionByUploadTitle.toLowerCase().includes(query ?? '')) {
+            if ((indexes.totalCount ?? 0) > 0 && retentionByUploadTitle.toLowerCase().includes(query ?? '')) {
                 conn.nodes.push({
                     matchType: 'UploadReference',
-                    uploadSlice: hacks.nodes,
-                    total: hacks.totalCount ?? 0,
+                    uploadSlice: indexes.nodes,
+                    total: indexes.totalCount ?? 0,
                 })
             }
 

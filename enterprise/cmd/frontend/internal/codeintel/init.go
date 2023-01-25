@@ -13,7 +13,6 @@ import (
 	policiesgraphql "github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/policies/transport/graphql"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/shared/gitserver"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/shared/lsifuploadstore"
-	sharedresolvers "github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/shared/resolvers"
 	uploadgraphql "github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/uploads/transport/graphql"
 	uploadshttp "github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/uploads/transport/http"
 	"github.com/sourcegraph/sourcegraph/internal/conf/conftypes"
@@ -80,19 +79,11 @@ func Init(
 		codeIntelServices.PoliciesService,
 	)
 
-	hackResolver := sharedresolvers.NewHackServiceResolver(
-		scopedContext("hack"),
-		codeIntelServices.UploadsService,
-		codeIntelServices.AutoIndexingService,
-		codeIntelServices.PoliciesService,
-	)
-
 	enterpriseServices.CodeIntelResolver = newResolver(
 		autoindexingRootResolver,
 		codenavRootResolver,
 		policyRootResolver,
 		uploadRootResolver,
-		hackResolver,
 	)
 	enterpriseServices.NewCodeIntelUploadHandler = newUploadHandler
 	enterpriseServices.RankingService = codeIntelServices.RankingService

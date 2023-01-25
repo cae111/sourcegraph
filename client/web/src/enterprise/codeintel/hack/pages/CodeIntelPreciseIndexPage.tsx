@@ -7,6 +7,7 @@ import {
     mdiAlertCircle,
     mdiCheck,
     mdiCheckCircle,
+    mdiChevronRight,
     mdiDatabaseEdit,
     mdiDatabasePlus,
     mdiFileUpload,
@@ -51,16 +52,21 @@ import {
     FilteredConnectionQueryArguments,
 } from '../../../../components/FilteredConnection'
 import { Timeline, TimelineStage } from '../../../../components/Timeline'
-import { AuditLogOperation, HackFields, HackState, LsifUploadsAuditLogsFields } from '../../../../graphql-operations'
-import { queryHack } from '../hooks/queryHack'
-import { queryHackDependencyGraph } from '../hooks/queryHackDependencyGraph'
+import {
+    AuditLogOperation,
+    PreciseIndexFields,
+    PreciseIndexState,
+    LsifUploadsAuditLogsFields,
+} from '../../../../graphql-operations'
+import { queryPreciseIndex } from '../hooks/queryPreciseIndex'
+import { queryDependencyGraph } from '../hooks/queryDependencyGraph'
 import {
     NormalizedUploadRetentionMatch,
-    queryHackRetention as queryUploadRetentionMatches,
+    queryPreciseIndexRetention,
     RetentionPolicyMatch,
     UploadReferenceMatch,
-} from '../hooks/queryHackRetention'
-import styles from './CodeIntelHackPage.module.scss'
+} from '../hooks/queryPreciseIndexRetention'
+import styles from './CodeIntelPreciseIndexPage.module.scss'
 import { Collapsible } from '../../../../components/Collapsible'
 import { LogOutput } from '../../../../components/LogOutput'
 import { CodeIntelUploadOrIndexRepository } from '../../shared/components/CodeIntelUploadOrIndexerRepository'
@@ -69,6 +75,7 @@ import { CodeIntelUploadOrIndexCommit } from '../../shared/components/CodeIntelU
 import { CodeIntelUploadOrIndexCommitTags } from '../../shared/components/CodeIntelUploadOrIndexCommitTags'
 import { CodeIntelUploadOrIndexIndexer } from '../../shared/components/CodeIntelUploadOrIndexIndexer'
 import { formatDurationLong } from '../../../../util/time'
+import { CodeIntelState } from '../../shared/components/CodeIntelState'
 
 export interface CodeIntelHackPageProps extends RouteComponentProps<{ id: string }>, ThemeProps, TelemetryProps {
     now?: () => Date
@@ -84,10 +91,10 @@ enum RetentionPolicyMatcherState {
     ShowAll,
 }
 
-const variantByState = new Map<HackState, AlertProps['variant']>([
-    [HackState.COMPLETED, 'success'],
-    [HackState.INDEXING_ERRORED, 'danger'],
-    [HackState.PROCESSING_ERRORED, 'danger'],
+const variantByState = new Map<PreciseIndexState, AlertProps['variant']>([
+    [PreciseIndexState.COMPLETED, 'success'],
+    [PreciseIndexState.INDEXING_ERRORED, 'danger'],
+    [PreciseIndexState.PROCESSING_ERRORED, 'danger'],
 ])
 
 export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
@@ -103,7 +110,10 @@ export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
 
     const apolloClient = useApolloClient()
     const hackOrError = useObservable(
-        useMemo(() => queryHack(id, apolloClient).pipe(takeWhile(shouldReload, true)), [id, queryHack, apolloClient])
+        useMemo(
+            () => queryPreciseIndex(id, apolloClient).pipe(takeWhile(shouldReload, true)),
+            [id, queryPreciseIndex, apolloClient]
+        )
     )
 
     const [dependencyGraphState, setDependencyGraphState] = useState(DependencyGraphState.ShowDependencies)
@@ -112,28 +122,28 @@ export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
     const queryDependencies = useCallback(
         (args: FilteredConnectionQueryArguments) => {
             if (hackOrError && !isErrorLike(hackOrError)) {
-                return queryHackDependencyGraph({ ...args, dependencyOf: hackOrError.id }, apolloClient)
+                return queryDependencyGraph({ ...args, dependencyOf: hackOrError.id }, apolloClient)
             }
             throw new Error('unreachable: queryDependencies referenced with invalid upload')
         },
-        [hackOrError, queryHackDependencyGraph, apolloClient]
+        [hackOrError, queryDependencyGraph, apolloClient]
     )
 
     const queryDependents = useCallback(
         (args: FilteredConnectionQueryArguments) => {
             if (hackOrError && !isErrorLike(hackOrError)) {
-                return queryHackDependencyGraph({ ...args, dependentOf: hackOrError.id }, apolloClient)
+                return queryDependencyGraph({ ...args, dependentOf: hackOrError.id }, apolloClient)
             }
 
             throw new Error('unreachable: queryDependents referenced with invalid upload')
         },
-        [hackOrError, queryHackDependencyGraph, apolloClient]
+        [hackOrError, queryDependencyGraph, apolloClient]
     )
 
     const queryRetentionPoliciesCallback = useCallback(
         (args: FilteredConnectionQueryArguments): Observable<Connection<NormalizedUploadRetentionMatch>> => {
             if (hackOrError && !isErrorLike(hackOrError)) {
-                return queryUploadRetentionMatches(apolloClient, id, {
+                return queryPreciseIndexRetention(apolloClient, id, {
                     matchesOnly: retentionPolicyMatcherState === RetentionPolicyMatcherState.ShowMatchingOnly,
                     ...args,
                 })
@@ -141,7 +151,7 @@ export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
 
             throw new Error('unreachable: queryRetentionPolicies referenced with invalid upload')
         },
-        [hackOrError, apolloClient, id, queryUploadRetentionMatches, retentionPolicyMatcherState]
+        [hackOrError, apolloClient, id, queryPreciseIndexRetention, retentionPolicyMatcherState]
     )
 
     return isErrorLike(hackOrError) ? (
@@ -237,11 +247,11 @@ export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
 
                 <Alert variant={variantByState.get(hackOrError.state) ?? 'primary'}>
                     <span>
-                        {hackOrError.state === HackState.UPLOADING_INDEX ? (
+                        {hackOrError.state === PreciseIndexState.UPLOADING_INDEX ? (
                             <span>Still uploading...</span>
-                        ) : hackOrError.state === HackState.DELETING ? (
+                        ) : hackOrError.state === PreciseIndexState.DELETING ? (
                             <span>Upload is queued for deletion.</span>
-                        ) : hackOrError.state === HackState.QUEUED_FOR_INDEXING ? (
+                        ) : hackOrError.state === PreciseIndexState.QUEUED_FOR_INDEXING ? (
                             <>
                                 Hack is queued for indexing.{' '}
                                 <LousyDescription
@@ -250,7 +260,7 @@ export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
                                     pluralTypeName={'hacks'}
                                 />
                             </>
-                        ) : hackOrError.state === HackState.QUEUED_FOR_PROCESSING ? (
+                        ) : hackOrError.state === PreciseIndexState.QUEUED_FOR_PROCESSING ? (
                             <>
                                 <span>
                                     Hack is queued for processing.{' '}
@@ -261,17 +271,17 @@ export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
                                     />
                                 </span>
                             </>
-                        ) : hackOrError.state === HackState.INDEXING ? (
+                        ) : hackOrError.state === PreciseIndexState.INDEXING ? (
                             <span>Hack is currently being indexed...</span>
-                        ) : hackOrError.state === HackState.PROCESSING ? (
+                        ) : hackOrError.state === PreciseIndexState.PROCESSING ? (
                             <span>Hack is currently being processed...</span>
-                        ) : hackOrError.state === HackState.COMPLETED ? (
+                        ) : hackOrError.state === PreciseIndexState.COMPLETED ? (
                             <span>Hack processed successfully.</span>
-                        ) : hackOrError.state === HackState.INDEXING_ERRORED ? (
+                        ) : hackOrError.state === PreciseIndexState.INDEXING_ERRORED ? (
                             <span>
                                 Hack failed to index: <ErrorMessage error={hackOrError.failure} />
                             </span>
-                        ) : hackOrError.state === HackState.PROCESSING_ERRORED ? (
+                        ) : hackOrError.state === PreciseIndexState.PROCESSING_ERRORED ? (
                             <span>
                                 Hack failed to process: <ErrorMessage error={hackOrError.failure} />
                             </span>
@@ -294,7 +304,8 @@ export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
                     <HackTimeline hack={hackOrError} />
                 </Container>
 
-                {(hackOrError.state === HackState.COMPLETED || hackOrError.state === HackState.DELETING) && (
+                {(hackOrError.state === PreciseIndexState.COMPLETED ||
+                    hackOrError.state === PreciseIndexState.DELETING) && (
                     <>
                         <Container className="mt-2">
                             {/* <Collapsible
@@ -425,7 +436,7 @@ export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
 
 const terminalStates = new Set(['TODO']) // TODO
 
-function shouldReload(hack: HackFields | ErrorLike | null | undefined): boolean {
+function shouldReload(hack: PreciseIndexFields | ErrorLike | null | undefined): boolean {
     return !isErrorLike(hack) && !(hack && terminalStates.has(hack.state))
 }
 
@@ -452,7 +463,7 @@ const LousyDescription: FunctionComponent<React.PropsWithChildren<CodeIntelState
 }
 
 export interface HackTimelineProps {
-    hack: HackFields
+    hack: PreciseIndexFields
     now?: () => Date
     className?: string
 }
@@ -511,7 +522,7 @@ export const HackTimeline: FunctionComponent<React.PropsWithChildren<HackTimelin
         // Do not distinctly show the end of indexing unless it was a failure that produced
         // to submit an upload record. If we did submit a record, then the end result of this
         // job is successful to the user (if processing succeeds).
-        if (hack.indexingFinishedAt && hack.state === HackState.INDEXING_ERRORED) {
+        if (hack.indexingFinishedAt && hack.state === PreciseIndexState.INDEXING_ERRORED) {
             stages.push({
                 icon: <Icon aria-label="" svgPath={mdiAlertCircle} />,
                 text: 'Failed indexing',
@@ -522,14 +533,14 @@ export const HackTimeline: FunctionComponent<React.PropsWithChildren<HackTimelin
 
         // TODO - document
         if (hack.uploadedAt) {
-            if (hack.state === HackState.UPLOADING_INDEX) {
+            if (hack.state === PreciseIndexState.UPLOADING_INDEX) {
                 stages.push({
                     icon: <Icon aria-label="Success" svgPath={mdiFileUpload} />,
                     text: 'Began uploading',
                     date: hack.uploadedAt,
                     className: 'bg-success',
                 })
-            } else if (hack.state === HackState.PROCESSING_ERRORED) {
+            } else if (hack.state === PreciseIndexState.PROCESSING_ERRORED) {
                 if (!hack.processingStartedAt) {
                     stages.push({
                         icon: <Icon aria-label="" svgPath={mdiAlertCircle} />,
@@ -560,7 +571,7 @@ export const HackTimeline: FunctionComponent<React.PropsWithChildren<HackTimelin
 
         // TODO - document
         if (hack.processingFinishedAt) {
-            if (hack.state === HackState.PROCESSING_ERRORED) {
+            if (hack.state === PreciseIndexState.PROCESSING_ERRORED) {
                 if (hack.processingStartedAt) {
                     stages.push({
                         icon: <Icon aria-label="Failed" svgPath={mdiAlertCircle} />,
@@ -590,7 +601,7 @@ export const HackTimeline: FunctionComponent<React.PropsWithChildren<HackTimelin
     )
 }
 
-const indexSetupStage = (hack: HackFields, now?: () => Date): TimelineStage | undefined =>
+const indexSetupStage = (hack: PreciseIndexFields, now?: () => Date): TimelineStage | undefined =>
     !hack.steps || hack.steps.setup.length === 0
         ? undefined
         : {
@@ -601,7 +612,7 @@ const indexSetupStage = (hack: HackFields, now?: () => Date): TimelineStage | un
               ...genericStage(hack.steps.setup),
           }
 
-const indexPreIndexStage = (hack: HackFields, now?: () => Date): TimelineStage | undefined => {
+const indexPreIndexStage = (hack: PreciseIndexFields, now?: () => Date): TimelineStage | undefined => {
     if (!hack.steps) {
         return undefined
     }
@@ -632,7 +643,7 @@ const indexPreIndexStage = (hack: HackFields, now?: () => Date): TimelineStage |
           }
 }
 
-const indexIndexStage = (hack: HackFields, now?: () => Date): TimelineStage | undefined =>
+const indexIndexStage = (hack: PreciseIndexFields, now?: () => Date): TimelineStage | undefined =>
     !hack.steps || !hack.steps.index.logEntry
         ? undefined
         : {
@@ -653,7 +664,7 @@ const indexIndexStage = (hack: HackFields, now?: () => Date): TimelineStage | un
               ...genericStage(hack.steps.index.logEntry),
           }
 
-const indexUploadStage = (hack: HackFields, now?: () => Date): TimelineStage | undefined =>
+const indexUploadStage = (hack: PreciseIndexFields, now?: () => Date): TimelineStage | undefined =>
     !hack.steps || !hack.steps.upload
         ? undefined
         : {
@@ -662,7 +673,7 @@ const indexUploadStage = (hack: HackFields, now?: () => Date): TimelineStage | u
               ...genericStage(hack.steps.upload),
           }
 
-const indexTeardownStage = (hack: HackFields, now?: () => Date): TimelineStage | undefined =>
+const indexTeardownStage = (hack: PreciseIndexFields, now?: () => Date): TimelineStage | undefined =>
     !hack.steps || hack.steps.teardown.length === 0
         ? undefined
         : {
@@ -869,7 +880,7 @@ const UploadReferenceRetentionMatchNode: FunctionComponent<
 )
 
 export interface DependencyOrDependentNodeProps {
-    node: HackFields
+    node: PreciseIndexFields
     now?: () => Date
 }
 

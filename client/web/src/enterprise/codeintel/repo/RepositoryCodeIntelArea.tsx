@@ -22,8 +22,8 @@ import { CodeIntelUploadPageProps } from '../uploads/pages/CodeIntelUploadPage'
 import { CodeIntelUploadsPageProps } from '../uploads/pages/CodeIntelUploadsPage'
 
 import { CodeIntelSidebar, CodeIntelSideBarGroups } from './CodeIntelSidebar'
-import { CodeIntelHackListPageProps } from '../hack/pages/CodeIntelHackListPage'
-import { CodeIntelHackPageProps } from '../hack/pages/CodeIntelHackPage'
+import { CodeIntelHackListPageProps } from '../hack/pages/CodeIntelPreciseIndexesPage'
+import { CodeIntelHackPageProps } from '../hack/pages/CodeIntelPreciseIndexPage'
 
 export interface CodeIntelAreaRouteContext extends ThemeProps, TelemetryProps {
     repo: { id: string; name: string }
@@ -33,11 +33,11 @@ export interface CodeIntelAreaRouteContext extends ThemeProps, TelemetryProps {
 export interface CodeIntelAreaRoute extends RouteDescriptor<CodeIntelAreaRouteContext> {}
 
 const CodeIntelHackListPage = lazyComponent<CodeIntelHackListPageProps, 'CodeIntelHackListPage'>(
-    () => import('../hack/pages/CodeIntelHackListPage'),
+    () => import('../hack/pages/CodeIntelPreciseIndexesPage'),
     'CodeIntelHackListPage'
 )
 const CodeIntelHackPage = lazyComponent<CodeIntelHackPageProps, 'CodeIntelHackPage'>(
-    () => import('../hack/pages/CodeIntelHackPage'),
+    () => import('../hack/pages/CodeIntelPreciseIndexPage'),
     'CodeIntelHackPage'
 )
 const CodeIntelUploadsPage = lazyComponent<CodeIntelUploadsPageProps, 'CodeIntelUploadsPage'>(

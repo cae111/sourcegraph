@@ -111,14 +111,17 @@ export const enterpriseSiteAdminAreaRoutes: readonly SiteAdminAreaRoute[] = (
         {
             path: '/code-graph/hack',
             render: lazyComponent(
-                () => import('../codeintel/hack/pages/CodeIntelHackListPage'),
-                'CodeIntelHackListPage'
+                () => import('../codeintel/hack/pages/CodeIntelPreciseIndexesPage'),
+                'CodeIntelPreciseIndexesPage'
             ),
             exact: true,
         },
         {
             path: '/code-graph/hack/:id',
-            render: lazyComponent(() => import('../codeintel/hack/pages/CodeIntelHackPage'), 'CodeIntelHackPage'),
+            render: lazyComponent(
+                () => import('../codeintel/hack/pages/CodeIntelPreciseIndexPage'),
+                'CodeIntelPreciseIndexPage'
+            ),
             exact: true,
         },
 

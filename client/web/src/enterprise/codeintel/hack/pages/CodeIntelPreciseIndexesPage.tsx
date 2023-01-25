@@ -10,8 +10,8 @@ import {
     FilteredConnectionFilter,
     FilteredConnectionQueryArguments,
 } from '../../../../components/FilteredConnection'
-import { HackFields, HackState } from '../../../../graphql-operations'
-import { queryHackList } from '../hooks/queryHackList'
+import { PreciseIndexFields, PreciseIndexState } from '../../../../graphql-operations'
+import { queryPreciseIndexes } from '../hooks/queryPreciseIndexes'
 import { useEnqueueIndexJob } from '../hooks/useEnqueueIndexJob'
 import { Timestamp } from '@sourcegraph/branded/src/components/Timestamp'
 import {
@@ -29,13 +29,13 @@ import {
 import * as H from 'history'
 
 import { mdiAlertCircle, mdiCheckCircle, mdiDatabase, mdiFileUpload, mdiSourceRepository, mdiTimerSand } from '@mdi/js'
-import styles from './CodeIntelHackListPage.module.scss'
+import styles from './CodeIntelPreciseIndexesPage.module.scss'
 
 import { AuthenticatedUser } from '@sourcegraph/shared/src/auth'
 import classNames from 'classnames'
 import { of, Subject } from 'rxjs'
 import { PageTitle } from '../../../../components/PageTitle'
-import { queryCommitGraphMetadata } from '../hooks/queryCommitGraphMetadata'
+import { queryCommitGraph } from '../hooks/queryCommitGraph'
 
 export interface CodeIntelHackListPageProps extends RouteComponentProps<{}>, ThemeProps, TelemetryProps {
     authenticatedUser: AuthenticatedUser | null
@@ -59,7 +59,7 @@ const filters: FilteredConnectionFilter[] = [
                 label: 'Completed',
                 value: 'completed',
                 tooltip: 'Show completed indexes only',
-                args: { states: HackState.COMPLETED },
+                args: { states: PreciseIndexState.COMPLETED },
             },
 
             {
@@ -68,9 +68,9 @@ const filters: FilteredConnectionFilter[] = [
                 tooltip: 'Show queued indexes only',
                 args: {
                     states: [
-                        HackState.UPLOADING_INDEX,
-                        HackState.QUEUED_FOR_INDEXING,
-                        HackState.QUEUED_FOR_PROCESSING,
+                        PreciseIndexState.UPLOADING_INDEX,
+                        PreciseIndexState.QUEUED_FOR_INDEXING,
+                        PreciseIndexState.QUEUED_FOR_PROCESSING,
                     ].join(','),
                 },
             },
@@ -78,13 +78,13 @@ const filters: FilteredConnectionFilter[] = [
                 label: 'In progress',
                 value: 'in-progress',
                 tooltip: 'Show in-progress indexes only',
-                args: { states: [HackState.INDEXING, HackState.PROCESSING].join(',') },
+                args: { states: [PreciseIndexState.INDEXING, PreciseIndexState.PROCESSING].join(',') },
             },
             {
                 label: 'Errored',
                 value: 'errored',
                 tooltip: 'Show errored indexes only',
-                args: { states: [HackState.INDEXING_ERRORED, HackState.PROCESSING_ERRORED].join(',') },
+                args: { states: [PreciseIndexState.INDEXING_ERRORED, PreciseIndexState.PROCESSING_ERRORED].join(',') },
             },
         ],
     },
@@ -103,15 +103,15 @@ export const CodeIntelHackListPage: FunctionComponent<CodeIntelHackListPageProps
     const apolloClient = useApolloClient()
     const queryHackListCallback = useCallback(
         (args: FilteredConnectionQueryArguments) => {
-            return queryHackList({ ...args, repo: repo?.id }, apolloClient)
+            return queryPreciseIndexes({ ...args, repo: repo?.id }, apolloClient)
         },
-        [queryHackList, apolloClient]
+        [queryPreciseIndexes, apolloClient]
     )
 
     const commitGraphMetadata = useObservable(
         useMemo(
-            () => (repo ? queryCommitGraphMetadata(repo?.id, apolloClient) : of(undefined)),
-            [repo, queryCommitGraphMetadata, apolloClient]
+            () => (repo ? queryCommitGraph(repo?.id, apolloClient) : of(undefined)),
+            [repo, queryCommitGraph, apolloClient]
         )
     )
 
@@ -119,7 +119,7 @@ export const CodeIntelHackListPage: FunctionComponent<CodeIntelHackListPageProps
         (args: FilteredConnectionQueryArguments) => {
             return queryHackListCallback(args)
         },
-        [queryHackList]
+        [queryHackListCallback]
     )
 
     const querySubject = useMemo(() => new Subject<string>(), [])
@@ -169,7 +169,7 @@ export const CodeIntelHackListPage: FunctionComponent<CodeIntelHackListPageProps
 
             <Container>
                 <div className="list-group position-relative">
-                    <FilteredConnection<HackFields, Omit<HackNodeProps, 'node'>>
+                    <FilteredConnection<PreciseIndexFields, Omit<HackNodeProps, 'node'>>
                         listComponent="div"
                         inputClassName="ml-2 flex-1"
                         listClassName={classNames(styles.grid, 'mb-3')}
@@ -193,7 +193,7 @@ export const CodeIntelHackListPage: FunctionComponent<CodeIntelHackListPageProps
 }
 
 export interface HackNodeProps {
-    node: HackFields
+    node: PreciseIndexFields
     now?: () => Date
     history: H.History
 }
@@ -302,7 +302,7 @@ export const HackNode: FunctionComponent<React.PropsWithChildren<HackNodeProps>>
 )
 
 export interface CodeIntelStateIconProps {
-    state: HackState
+    state: PreciseIndexState
     autoIndexed: boolean
     className?: string
 }
@@ -312,44 +312,44 @@ export const CodeIntelStateIcon: FunctionComponent<React.PropsWithChildren<CodeI
     autoIndexed,
     className,
 }) =>
-    state === HackState.QUEUED_FOR_PROCESSING ? (
+    state === PreciseIndexState.QUEUED_FOR_PROCESSING ? (
         <div className="text-center">
             <Icon className={className} svgPath={mdiTimerSand} inline={false} aria-label="Queued" />
             <Icon className={className} svgPath={mdiDatabase} inline={false} aria-label="Queued for processing" />
         </div>
-    ) : state === HackState.PROCESSING ? (
+    ) : state === PreciseIndexState.PROCESSING ? (
         <LoadingSpinner inline={false} className={className} />
-    ) : state === HackState.PROCESSING_ERRORED ? (
+    ) : state === PreciseIndexState.PROCESSING_ERRORED ? (
         <Icon
             className={classNames('text-danger', className)}
             svgPath={mdiAlertCircle}
             inline={false}
             aria-label="Errored"
         />
-    ) : state === HackState.COMPLETED ? (
+    ) : state === PreciseIndexState.COMPLETED ? (
         <Icon
             className={classNames('text-success', className)}
             svgPath={mdiCheckCircle}
             inline={false}
             aria-label="Completed"
         />
-    ) : state === HackState.UPLOADING_INDEX ? (
+    ) : state === PreciseIndexState.UPLOADING_INDEX ? (
         <Icon className={className} svgPath={mdiFileUpload} inline={false} aria-label="Uploading" />
-    ) : state === HackState.DELETING ? (
+    ) : state === PreciseIndexState.DELETING ? (
         <Icon
             className={classNames('text-muted', className)}
             svgPath={mdiCheckCircle}
             inline={false}
             aria-label="Deleting"
         />
-    ) : state === HackState.QUEUED_FOR_INDEXING ? (
+    ) : state === PreciseIndexState.QUEUED_FOR_INDEXING ? (
         <div className="text-center">
             <Icon className={className} svgPath={mdiTimerSand} inline={false} aria-label="Queued" />
             <Icon className={className} svgPath={mdiSourceRepository} inline={false} aria-label="Queued for indexing" />
         </div>
-    ) : state === HackState.INDEXING ? (
+    ) : state === PreciseIndexState.INDEXING ? (
         <LoadingSpinner inline={false} className={className} />
-    ) : state === HackState.INDEXING_ERRORED ? (
+    ) : state === PreciseIndexState.INDEXING_ERRORED ? (
         <Icon
             className={classNames('text-danger', className)}
             svgPath={mdiAlertCircle}
@@ -368,7 +368,7 @@ export const CodeIntelStateIcon: FunctionComponent<React.PropsWithChildren<CodeI
     )
 
 export interface CodeIntelStateLabelProps {
-    state: HackState
+    state: PreciseIndexState
     autoIndexed: boolean
     placeInQueue?: number | null
     className?: string
@@ -382,31 +382,31 @@ export const CodeIntelStateLabel: FunctionComponent<React.PropsWithChildren<Code
     placeInQueue,
     className,
 }) =>
-    state === HackState.QUEUED_FOR_PROCESSING ? (
+    state === PreciseIndexState.QUEUED_FOR_PROCESSING ? (
         <span className={classNames(labelClassNames, className)}>
             Queued <CodeIntelStateLabelPlaceInQueue placeInQueue={placeInQueue} />
         </span>
-    ) : state === HackState.PROCESSING ? (
+    ) : state === PreciseIndexState.PROCESSING ? (
         <span className={classNames(labelClassNames, className)}>Processing...</span>
-    ) : state === HackState.PROCESSING_ERRORED ? (
+    ) : state === PreciseIndexState.PROCESSING_ERRORED ? (
         <span className={classNames(labelClassNames, className)}>Errored</span>
-    ) : state === HackState.COMPLETED ? (
+    ) : state === PreciseIndexState.COMPLETED ? (
         <span className={classNames(labelClassNames, className)}>Completed</span>
-    ) : state === HackState.DELETED ? (
+    ) : state === PreciseIndexState.DELETED ? (
         <span className={classNames(labelClassNames, className)}>Deleted</span>
-    ) : state === HackState.DELETING ? (
+    ) : state === PreciseIndexState.DELETING ? (
         <span className={classNames(labelClassNames, className)}>Deleting</span>
-    ) : state === HackState.UPLOADING_INDEX ? (
+    ) : state === PreciseIndexState.UPLOADING_INDEX ? (
         <span className={classNames(labelClassNames, className)}>Uploading...</span>
-    ) : state === HackState.QUEUED_FOR_INDEXING ? (
+    ) : state === PreciseIndexState.QUEUED_FOR_INDEXING ? (
         <span className={classNames(labelClassNames, className)}>
             Queued <CodeIntelStateLabelPlaceInQueue placeInQueue={placeInQueue} />
         </span>
-    ) : state === HackState.INDEXING ? (
+    ) : state === PreciseIndexState.INDEXING ? (
         <span className={classNames(labelClassNames, className)}>Indexing...</span>
-    ) : state === HackState.INDEXING_ERRORED ? (
+    ) : state === PreciseIndexState.INDEXING_ERRORED ? (
         <span className={classNames(labelClassNames, className)}>Errored</span>
-    ) : state === HackState.INDEXING_COMPLETED ? (
+    ) : state === PreciseIndexState.INDEXING_COMPLETED ? (
         <span className={classNames(labelClassNames, className)}>completed</span>
     ) : autoIndexed ? (
         <span className={classNames(labelClassNames, className)}>Completed</span>

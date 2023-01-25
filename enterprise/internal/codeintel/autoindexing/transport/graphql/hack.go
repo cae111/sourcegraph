@@ -94,7 +94,7 @@ func (r *rootResolver) PreciseIndexes(ctx context.Context, args *resolverstubs.P
 
 	var dependencyOf int
 	if args.DependencyOf != nil {
-		v, err := unmarshalHackGQLID(graphql.ID(*args.DependencyOf))
+		v, err := unmarshalPreciseIndexGQLID(graphql.ID(*args.DependencyOf))
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +104,7 @@ func (r *rootResolver) PreciseIndexes(ctx context.Context, args *resolverstubs.P
 	}
 	var dependentOf int
 	if args.DependentOf != nil {
-		v, err := unmarshalHackGQLID(graphql.ID(*args.DependentOf))
+		v, err := unmarshalPreciseIndexGQLID(graphql.ID(*args.DependentOf))
 		if err != nil {
 			return nil, err
 		}
@@ -348,10 +348,10 @@ func NewHackResolver(
 
 func (r *hackResolver) ID() graphql.ID {
 	if r.upload != nil {
-		return relay.MarshalID("Hack", fmt.Sprintf("U:%d", r.upload.ID))
+		return relay.MarshalID("PreciseIndex", fmt.Sprintf("U:%d", r.upload.ID))
 	}
 
-	return relay.MarshalID("Hack", fmt.Sprintf("I:%d", r.index.ID))
+	return relay.MarshalID("PreciseIndex", fmt.Sprintf("I:%d", r.index.ID))
 }
 
 func (r *hackResolver) ProjectRoot(ctx context.Context) (resolverstubs.GitTreeEntryResolver, error) {
@@ -566,14 +566,14 @@ func (r *hackResolver) AuditLogs(ctx context.Context) (*[]resolverstubs.LSIFUplo
 	return r.uploadResolver.AuditLogs(ctx)
 }
 
-func unmarshalHackGQLID(id graphql.ID) (int64, error) {
+func unmarshalPreciseIndexGQLID(id graphql.ID) (int64, error) {
 	var payload string
 	if err := relay.UnmarshalSpec(id, &payload); err != nil {
 		return 0, err
 	}
 
 	parts := strings.Split(payload, ":")
-	if len(parts) == 2 || len(parts) == 4 && parts[0] == "U" {
+	if len(parts) == 2 && parts[0] == "U" {
 		id, err := strconv.Atoi(parts[1])
 		if err != nil {
 			return 0, err
@@ -582,7 +582,7 @@ func unmarshalHackGQLID(id graphql.ID) (int64, error) {
 		return int64(id), nil
 	}
 
-	return 0, errors.New("unexpected hack ID")
+	return 0, errors.New("unexpected precise index ID")
 }
 
 type pageInfo struct {
