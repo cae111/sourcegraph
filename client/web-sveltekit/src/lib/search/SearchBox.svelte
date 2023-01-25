@@ -140,7 +140,7 @@
 
 <style lang="scss">
     form {
-        flex: 1;
+        width: 100%;
         display: flex;
         align-items: center;
         background-color: var(--color-bg-1);

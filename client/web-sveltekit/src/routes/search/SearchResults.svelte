@@ -156,7 +156,6 @@
 <style lang="scss">
     .search {
         border-bottom: 1px solid var(--border-color);
-        display: flex;
         align-self: stretch;
         padding: 0.5rem 1rem;
     }
@@ -167,10 +166,6 @@
         align-items: center;
         flex-direction: column;
         overflow: hidden;
-
-        :global(.search-box) {
-            align-self: stretch;
-        }
     }
 
     .results {

@@ -48,9 +48,15 @@
 {/if}
 
 <style lang="scss">
+    @import 'wildcard/src/global-styles/breakpoints';
     div {
         display: flex;
         gap: 4rem;
+
+        @media (--xs-breakpoint-down) {
+            flex-direction: column;
+            gap: 0;
+        }
     }
 
     h2 {

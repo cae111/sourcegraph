@@ -20,23 +20,41 @@
 </script>
 
 <section>
-    <img class="logo" src={$isLightTheme ? logoLight : logoDark} alt="Sourcegraph Logo" />
-    <SearchBox autoFocus {queryState} patternType={SearchPatternType.literal} selectedSearchContext="global" />
-    <slot />
+    <div class="content">
+        <img class="logo" src={$isLightTheme ? logoLight : logoDark} alt="Sourcegraph Logo" />
+        <div class="search">
+            <SearchBox autoFocus {queryState} patternType={SearchPatternType.literal} selectedSearchContext="global" />
+        </div>
+        <slot />
+    </div>
 </section>
 
 <style lang="scss">
     section {
+        overflow-y: auto;
+        padding: 0 1rem;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        align-items: center;
+    }
+
+    div.content {
+        flex-shrink: 0;
         display: flex;
         flex-direction: column;
         align-items: center;
-        overflow: auto;
+        width: 100%;
         max-width: 64rem;
-        align-self: center;
+        overflow-x: hidden;
 
         :global(.search-box) {
-            min-width: 60rem;
+            align-self: stretch;
         }
+    }
+
+    .search {
+        width: 100%;
     }
 
     img.logo {

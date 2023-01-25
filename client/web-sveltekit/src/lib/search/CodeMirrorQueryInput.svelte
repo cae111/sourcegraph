@@ -154,10 +154,9 @@
 
     .root {
         flex: 1;
-        min-width: 0;
         box-sizing: border-box;
-        width: 100%;
         background-color: var(--color-bg-1);
+        min-width: 0;
 
         :global(.cm-editor) {
             // Codemirror shows a focus ring by default. Since we handle that
