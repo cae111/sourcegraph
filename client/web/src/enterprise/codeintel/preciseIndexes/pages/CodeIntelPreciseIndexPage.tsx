@@ -7,7 +7,6 @@ import {
     mdiAlertCircle,
     mdiCheck,
     mdiCheckCircle,
-    mdiChevronRight,
     mdiDatabaseEdit,
     mdiDatabasePlus,
     mdiFileUpload,
@@ -46,20 +45,28 @@ import {
 import classNames from 'classnames'
 import { Observable } from 'rxjs'
 import { takeWhile } from 'rxjs/operators'
+import { Collapsible } from '../../../../components/Collapsible'
 import {
     Connection,
     FilteredConnection,
     FilteredConnectionQueryArguments,
 } from '../../../../components/FilteredConnection'
+import { LogOutput } from '../../../../components/LogOutput'
 import { Timeline, TimelineStage } from '../../../../components/Timeline'
 import {
     AuditLogOperation,
+    LsifUploadsAuditLogsFields,
     PreciseIndexFields,
     PreciseIndexState,
-    LsifUploadsAuditLogsFields,
 } from '../../../../graphql-operations'
-import { queryPreciseIndex } from '../hooks/queryPreciseIndex'
+import { formatDurationLong } from '../../../../util/time'
+import { CodeIntelUploadOrIndexCommit } from '../../shared/components/CodeIntelUploadOrIndexCommit'
+import { CodeIntelUploadOrIndexCommitTags } from '../../shared/components/CodeIntelUploadOrIndexCommitTags'
+import { CodeIntelUploadOrIndexRepository } from '../../shared/components/CodeIntelUploadOrIndexerRepository'
+import { CodeIntelUploadOrIndexIndexer } from '../../shared/components/CodeIntelUploadOrIndexIndexer'
+import { CodeIntelUploadOrIndexRoot } from '../../shared/components/CodeIntelUploadOrIndexRoot'
 import { queryDependencyGraph } from '../hooks/queryDependencyGraph'
+import { queryPreciseIndex } from '../hooks/queryPreciseIndex'
 import {
     NormalizedUploadRetentionMatch,
     queryPreciseIndexRetention,
@@ -67,15 +74,6 @@ import {
     UploadReferenceMatch,
 } from '../hooks/queryPreciseIndexRetention'
 import styles from './CodeIntelPreciseIndexPage.module.scss'
-import { Collapsible } from '../../../../components/Collapsible'
-import { LogOutput } from '../../../../components/LogOutput'
-import { CodeIntelUploadOrIndexRepository } from '../../shared/components/CodeIntelUploadOrIndexerRepository'
-import { CodeIntelUploadOrIndexRoot } from '../../shared/components/CodeIntelUploadOrIndexRoot'
-import { CodeIntelUploadOrIndexCommit } from '../../shared/components/CodeIntelUploadOrIndexCommit'
-import { CodeIntelUploadOrIndexCommitTags } from '../../shared/components/CodeIntelUploadOrIndexCommitTags'
-import { CodeIntelUploadOrIndexIndexer } from '../../shared/components/CodeIntelUploadOrIndexIndexer'
-import { formatDurationLong } from '../../../../util/time'
-import { CodeIntelState } from '../../shared/components/CodeIntelState'
 
 export interface CodeIntelPreciseIndexPageProps
     extends RouteComponentProps<{ id: string }>,

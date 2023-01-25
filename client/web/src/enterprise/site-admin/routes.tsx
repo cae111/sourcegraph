@@ -107,58 +107,58 @@ export const enterpriseSiteAdminAreaRoutes: readonly SiteAdminAreaRoute[] = (
             render: props => <Redirect to={props.location.pathname.replace('/code-intelligence/', '/code-graph/')} />,
         },
 
-        // Hack routes
+        // Precise index routes
         {
-            path: '/code-graph/hack',
+            path: '/code-graph/indexes',
             render: lazyComponent(
-                () => import('../codeintel/hack/pages/CodeIntelPreciseIndexesPage'),
+                () => import('../codeintel/preciseIndexes/pages/CodeIntelPreciseIndexesPage'),
                 'CodeIntelPreciseIndexesPage'
             ),
             exact: true,
         },
         {
-            path: '/code-graph/hack/:id',
+            path: '/code-graph/indexes/:id',
             render: lazyComponent(
-                () => import('../codeintel/hack/pages/CodeIntelPreciseIndexPage'),
+                () => import('../codeintel/preciseIndexes/pages/CodeIntelPreciseIndexPage'),
                 'CodeIntelPreciseIndexPage'
             ),
             exact: true,
         },
 
-        // Code graph upload routes
-        {
-            path: '/code-graph/uploads',
-            render: lazyComponent(
-                () => import('../codeintel/uploads/pages/CodeIntelUploadsPage'),
-                'CodeIntelUploadsPage'
-            ),
-            exact: true,
-        },
-        {
-            path: '/code-graph/uploads/:id',
-            render: lazyComponent(
-                () => import('../codeintel/uploads/pages/CodeIntelUploadPage'),
-                'CodeIntelUploadPage'
-            ),
-            exact: true,
-        },
+        // // Code graph upload routes
+        // {
+        //     path: '/code-graph/uploads',
+        //     render: lazyComponent(
+        //         () => import('../codeintel/uploads/pages/CodeIntelUploadsPage'),
+        //         'CodeIntelUploadsPage'
+        //     ),
+        //     exact: true,
+        // },
+        // {
+        //     path: '/code-graph/uploads/:id',
+        //     render: lazyComponent(
+        //         () => import('../codeintel/uploads/pages/CodeIntelUploadPage'),
+        //         'CodeIntelUploadPage'
+        //     ),
+        //     exact: true,
+        // },
 
-        // Auto-indexing routes
-        {
-            path: '/code-graph/indexes',
-            render: lazyComponent(
-                () => import('../codeintel/indexes/pages/CodeIntelIndexesPage'),
-                'CodeIntelIndexesPage'
-            ),
-            exact: true,
-            condition: () => Boolean(window.context?.codeIntelAutoIndexingEnabled),
-        },
-        {
-            path: '/code-graph/indexes/:id',
-            render: lazyComponent(() => import('../codeintel/indexes/pages/CodeIntelIndexPage'), 'CodeIntelIndexPage'),
-            exact: true,
-            condition: () => Boolean(window.context?.codeIntelAutoIndexingEnabled),
-        },
+        // // Auto-indexing routes
+        // {
+        //     path: '/code-graph/indexes',
+        //     render: lazyComponent(
+        //         () => import('../codeintel/indexes/pages/CodeIntelIndexesPage'),
+        //         'CodeIntelIndexesPage'
+        //     ),
+        //     exact: true,
+        //     condition: () => Boolean(window.context?.codeIntelAutoIndexingEnabled),
+        // },
+        // {
+        //     path: '/code-graph/indexes/:id',
+        //     render: lazyComponent(() => import('../codeintel/indexes/pages/CodeIntelIndexPage'), 'CodeIntelIndexPage'),
+        //     exact: true,
+        //     condition: () => Boolean(window.context?.codeIntelAutoIndexingEnabled),
+        // },
 
         // Code graph configuration
         {

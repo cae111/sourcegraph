@@ -16,14 +16,10 @@ import { CodeIntelConfigurationPageProps } from '../configuration/pages/CodeInte
 import { CodeIntelConfigurationPolicyPageProps } from '../configuration/pages/CodeIntelConfigurationPolicyPage'
 import { CodeIntelInferenceConfigurationPageProps } from '../configuration/pages/CodeIntelInferenceConfigurationPage'
 import { CodeIntelRepositoryIndexConfigurationPageProps } from '../configuration/pages/CodeIntelRepositoryIndexConfigurationPage'
-import { CodeIntelIndexesPageProps } from '../indexes/pages/CodeIntelIndexesPage'
 import { CodeIntelIndexPageProps } from '../indexes/pages/CodeIntelIndexPage'
-import { CodeIntelUploadPageProps } from '../uploads/pages/CodeIntelUploadPage'
-import { CodeIntelUploadsPageProps } from '../uploads/pages/CodeIntelUploadsPage'
 
+import { CodeIntelPreciseIndexesPageProps } from '../preciseIndexes/pages/CodeIntelPreciseIndexesPage'
 import { CodeIntelSidebar, CodeIntelSideBarGroups } from './CodeIntelSidebar'
-import { CodeIntelPreciseIndexesPageProps } from '../hack/pages/CodeIntelPreciseIndexesPage'
-import { CodeIntelPreciseIndexPageProps } from '../hack/pages/CodeIntelPreciseIndexPage'
 
 export interface CodeIntelAreaRouteContext extends ThemeProps, TelemetryProps {
     repo: { id: string; name: string }
@@ -32,30 +28,13 @@ export interface CodeIntelAreaRouteContext extends ThemeProps, TelemetryProps {
 
 export interface CodeIntelAreaRoute extends RouteDescriptor<CodeIntelAreaRouteContext> {}
 
-const CodeIntelHackListPage = lazyComponent<CodeIntelPreciseIndexesPageProps, 'CodeIntelHackListPage'>(
-    () => import('../hack/pages/CodeIntelPreciseIndexesPage'),
-    'CodeIntelHackListPage'
+const CodeIntelPreciseIndexesPage = lazyComponent<CodeIntelPreciseIndexesPageProps, 'CodeIntelPreciseIndexesPage'>(
+    () => import('../preciseIndexes/pages/CodeIntelPreciseIndexesPage'),
+    'CodeIntelPreciseIndexesPage'
 )
-const CodeIntelHackPage = lazyComponent<CodeIntelIndexPageProps, 'CodeIntelHackPage'>(
-    () => import('../hack/pages/CodeIntelPreciseIndexPage'),
-    'CodeIntelHackPage'
-)
-const CodeIntelUploadsPage = lazyComponent<CodeIntelUploadsPageProps, 'CodeIntelUploadsPage'>(
-    () => import('../uploads/pages/CodeIntelUploadsPage'),
-    'CodeIntelUploadsPage'
-)
-const CodeIntelUploadPage = lazyComponent<CodeIntelUploadPageProps, 'CodeIntelUploadPage'>(
-    () => import('../uploads/pages/CodeIntelUploadPage'),
-    'CodeIntelUploadPage'
-)
-
-const CodeIntelIndexesPage = lazyComponent<CodeIntelIndexesPageProps, 'CodeIntelIndexesPage'>(
-    () => import('../indexes/pages/CodeIntelIndexesPage'),
-    'CodeIntelIndexesPage'
-)
-const CodeIntelIndexPage = lazyComponent<CodeIntelIndexPageProps, 'CodeIntelIndexPage'>(
-    () => import('../indexes/pages/CodeIntelIndexPage'),
-    'CodeIntelIndexPage'
+const CodeIntelPreciseIndexPage = lazyComponent<CodeIntelIndexPageProps, 'CodeIntelPreciseIndexPage'>(
+    () => import('../preciseIndexes/pages/CodeIntelPreciseIndexPage'),
+    'CodeIntelPreciseIndexPage'
 )
 
 const CodeIntelConfigurationPage = lazyComponent<CodeIntelConfigurationPageProps, 'CodeIntelConfigurationPage'>(
@@ -85,40 +64,40 @@ export const routes: readonly CodeIntelAreaRoute[] = [
     {
         path: '/',
         exact: true,
-        render: () => <Redirect to="./code-graph/hack" />,
-    },
-    {
-        path: '/hack',
-        exact: true,
-        render: props => <CodeIntelHackListPage {...props} />,
-    },
-    {
-        path: '/hack/:id',
-        exact: true,
-        render: props => <CodeIntelHackPage {...props} />,
-    },
-    {
-        path: '/uploads',
-        exact: true,
-        render: props => <CodeIntelUploadsPage {...props} />,
-    },
-    {
-        path: '/uploads/:id',
-        exact: true,
-        render: props => <CodeIntelUploadPage {...props} />,
+        render: () => <Redirect to="./code-graph/indexes" />,
     },
     {
         path: '/indexes',
         exact: true,
-        render: props => <CodeIntelIndexesPage {...props} />,
-        condition: () => Boolean(window.context?.codeIntelAutoIndexingEnabled),
+        render: props => <CodeIntelPreciseIndexesPage {...props} />,
     },
     {
         path: '/indexes/:id',
         exact: true,
-        render: props => <CodeIntelIndexPage {...props} />,
-        condition: () => Boolean(window.context?.codeIntelAutoIndexingEnabled),
+        render: props => <CodeIntelPreciseIndexPage {...props} />,
     },
+    // {
+    //     path: '/uploads',
+    //     exact: true,
+    //     render: props => <CodeIntelUploadsPage {...props} />,
+    // },
+    // {
+    //     path: '/uploads/:id',
+    //     exact: true,
+    //     render: props => <CodeIntelUploadPage {...props} />,
+    // },
+    // {
+    //     path: '/indexes',
+    //     exact: true,
+    //     render: props => <CodeIntelIndexesPage {...props} />,
+    //     condition: () => Boolean(window.context?.codeIntelAutoIndexingEnabled),
+    // },
+    // {
+    //     path: '/indexes/:id',
+    //     exact: true,
+    //     render: props => <CodeIntelIndexPage {...props} />,
+    //     condition: () => Boolean(window.context?.codeIntelAutoIndexingEnabled),
+    // },
     {
         path: '/configuration',
         exact: true,
@@ -167,7 +146,7 @@ const sidebarRoutes: CodeIntelSideBarGroups = [
         header: { label: 'Code graph data' },
         items: [
             {
-                to: '/hack',
+                to: '/indexes',
                 label: 'Precise indexes',
             },
             {

@@ -97,7 +97,7 @@ const codeIntelGroup: SiteAdminSideBarGroup = {
     header: { label: 'Code graph', icon: BrainIcon },
     items: [
         {
-            to: '/site-admin/code-graph/hack',
+            to: '/site-admin/code-graph/indexes',
             label: 'Precise indexes',
         },
         {
