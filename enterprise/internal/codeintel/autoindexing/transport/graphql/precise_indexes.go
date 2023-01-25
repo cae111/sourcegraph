@@ -213,7 +213,7 @@ func (r *rootResolver) PreciseIndexes(ctx context.Context, args *resolverstubs.P
 
 	resolvers := make([]resolverstubs.PreciseIndexResolver, 0, len(pairs))
 	for _, pair := range pairs {
-		resolver, err := NewHackResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, nil, pair.upload, pair.index)
+		resolver, err := NewPreciseIndexResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, nil, pair.upload, pair.index)
 		if err != nil {
 			return nil, err
 		}
@@ -221,21 +221,21 @@ func (r *rootResolver) PreciseIndexes(ctx context.Context, args *resolverstubs.P
 		resolvers = append(resolvers, resolver)
 	}
 
-	return NewHackConnectionResolver(resolvers, totalUploadCount+totalIndexCount, cursor), nil
+	return NewPreciseIndexConnectionResolver(resolvers, totalUploadCount+totalIndexCount, cursor), nil
 }
 
-type hackConnectionResolver struct {
+type preciseIndexConnectionResolver struct {
 	nodes      []resolverstubs.PreciseIndexResolver
 	totalCount int
 	cursor     string
 }
 
-func NewHackConnectionResolver(
+func NewPreciseIndexConnectionResolver(
 	nodes []resolverstubs.PreciseIndexResolver,
 	totalCount int,
 	cursor string,
 ) resolverstubs.PreciseIndexConnectionResolver {
-	return &hackConnectionResolver{
+	return &preciseIndexConnectionResolver{
 		nodes:      nodes,
 		totalCount: totalCount,
 		cursor:     cursor,
@@ -269,7 +269,7 @@ func (r *rootResolver) PreciseIndexByID(ctx context.Context, id graphql.ID) (_ r
 			return nil, err
 		}
 
-		return NewHackResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, nil, &upload, nil)
+		return NewPreciseIndexResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, nil, &upload, nil)
 
 	case "I":
 		index, ok, err := r.autoindexSvc.GetIndexByID(ctx, rawID)
@@ -277,22 +277,22 @@ func (r *rootResolver) PreciseIndexByID(ctx context.Context, id graphql.ID) (_ r
 			return nil, err
 		}
 
-		return NewHackResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, nil, nil, &index)
+		return NewPreciseIndexResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, nil, nil, &index)
 	}
 
 	return nil, errors.New("invalid identifier")
 }
 
-func (r *hackConnectionResolver) Nodes(ctx context.Context) ([]resolverstubs.PreciseIndexResolver, error) {
+func (r *preciseIndexConnectionResolver) Nodes(ctx context.Context) ([]resolverstubs.PreciseIndexResolver, error) {
 	return r.nodes, nil
 }
 
-func (r *hackConnectionResolver) TotalCount(ctx context.Context) (*int32, error) {
+func (r *preciseIndexConnectionResolver) TotalCount(ctx context.Context) (*int32, error) {
 	count := int32(r.totalCount)
 	return &count, nil
 }
 
-func (r *hackConnectionResolver) PageInfo(ctx context.Context) (resolverstubs.PageInfo, error) {
+func (r *preciseIndexConnectionResolver) PageInfo(ctx context.Context) (resolverstubs.PageInfo, error) {
 	if r.cursor != "" {
 		return &pageInfo{hasNextPage: true, endCursor: &r.cursor}, nil
 	}
@@ -300,14 +300,14 @@ func (r *hackConnectionResolver) PageInfo(ctx context.Context) (resolverstubs.Pa
 	return &pageInfo{hasNextPage: false}, nil
 }
 
-type hackResolver struct {
+type preciseIndexResolver struct {
 	upload         *types.Upload
 	index          *types.Index
 	uploadResolver resolverstubs.LSIFUploadResolver
 	indexResolver  resolverstubs.LSIFIndexResolver
 }
 
-func NewHackResolver(
+func NewPreciseIndexResolver(
 	ctx context.Context,
 	autoindexingSvc AutoIndexingService,
 	uploadsSvc UploadsService,
@@ -338,7 +338,7 @@ func NewHackResolver(
 		indexResolver = sharedresolvers.NewIndexResolver(autoindexingSvc, uploadsSvc, policySvc, *index, prefetcher, locationResolver, traceErrs)
 	}
 
-	return &hackResolver{
+	return &preciseIndexResolver{
 		upload:         upload,
 		index:          index,
 		uploadResolver: uploadResolver,
@@ -346,7 +346,7 @@ func NewHackResolver(
 	}, nil
 }
 
-func (r *hackResolver) ID() graphql.ID {
+func (r *preciseIndexResolver) ID() graphql.ID {
 	if r.upload != nil {
 		return relay.MarshalID("PreciseIndex", fmt.Sprintf("U:%d", r.upload.ID))
 	}
@@ -354,7 +354,7 @@ func (r *hackResolver) ID() graphql.ID {
 	return relay.MarshalID("PreciseIndex", fmt.Sprintf("I:%d", r.index.ID))
 }
 
-func (r *hackResolver) ProjectRoot(ctx context.Context) (resolverstubs.GitTreeEntryResolver, error) {
+func (r *preciseIndexResolver) ProjectRoot(ctx context.Context) (resolverstubs.GitTreeEntryResolver, error) {
 	if r.uploadResolver != nil {
 		return r.uploadResolver.ProjectRoot(ctx)
 	}
@@ -362,7 +362,7 @@ func (r *hackResolver) ProjectRoot(ctx context.Context) (resolverstubs.GitTreeEn
 	return r.indexResolver.ProjectRoot(ctx)
 }
 
-func (r *hackResolver) InputCommit() string {
+func (r *preciseIndexResolver) InputCommit() string {
 	if r.uploadResolver != nil {
 		return r.uploadResolver.InputCommit()
 	}
@@ -370,7 +370,7 @@ func (r *hackResolver) InputCommit() string {
 	return r.indexResolver.InputCommit()
 }
 
-func (r *hackResolver) Tags(ctx context.Context) ([]string, error) {
+func (r *preciseIndexResolver) Tags(ctx context.Context) ([]string, error) {
 	if r.uploadResolver != nil {
 		return r.uploadResolver.Tags(ctx)
 	}
@@ -378,7 +378,7 @@ func (r *hackResolver) Tags(ctx context.Context) ([]string, error) {
 	return r.indexResolver.Tags(ctx)
 }
 
-func (r *hackResolver) InputRoot() string {
+func (r *preciseIndexResolver) InputRoot() string {
 	if r.uploadResolver != nil {
 		return r.uploadResolver.InputRoot()
 	}
@@ -386,7 +386,7 @@ func (r *hackResolver) InputRoot() string {
 	return r.indexResolver.InputRoot()
 }
 
-func (r *hackResolver) InputIndexer() string {
+func (r *preciseIndexResolver) InputIndexer() string {
 	if r.uploadResolver != nil {
 		return r.uploadResolver.InputIndexer()
 	}
@@ -394,7 +394,7 @@ func (r *hackResolver) InputIndexer() string {
 	return r.indexResolver.InputIndexer()
 }
 
-func (r *hackResolver) Indexer() resolverstubs.CodeIntelIndexerResolver {
+func (r *preciseIndexResolver) Indexer() resolverstubs.CodeIntelIndexerResolver {
 	if r.uploadResolver != nil {
 		return r.uploadResolver.Indexer()
 	}
@@ -402,7 +402,7 @@ func (r *hackResolver) Indexer() resolverstubs.CodeIntelIndexerResolver {
 	return r.indexResolver.Indexer()
 }
 
-func (r *hackResolver) State() string {
+func (r *preciseIndexResolver) State() string {
 	if r.upload != nil {
 		switch strings.ToUpper(r.upload.State) {
 		case "UPLOADING":
@@ -454,7 +454,7 @@ func (r *hackResolver) State() string {
 	}
 }
 
-func (r *hackResolver) QueuedAt() *gqlutil.DateTime {
+func (r *preciseIndexResolver) QueuedAt() *gqlutil.DateTime {
 	if r.indexResolver != nil {
 		t := r.indexResolver.QueuedAt()
 		return &t
@@ -463,7 +463,7 @@ func (r *hackResolver) QueuedAt() *gqlutil.DateTime {
 	return nil
 }
 
-func (r *hackResolver) UploadedAt() *gqlutil.DateTime {
+func (r *preciseIndexResolver) UploadedAt() *gqlutil.DateTime {
 	if r.uploadResolver != nil {
 		t := r.uploadResolver.UploadedAt()
 		return &t
@@ -472,7 +472,7 @@ func (r *hackResolver) UploadedAt() *gqlutil.DateTime {
 	return nil
 }
 
-func (r *hackResolver) IndexingStartedAt() *gqlutil.DateTime {
+func (r *preciseIndexResolver) IndexingStartedAt() *gqlutil.DateTime {
 	if r.indexResolver != nil {
 		return r.indexResolver.StartedAt()
 	}
@@ -480,7 +480,7 @@ func (r *hackResolver) IndexingStartedAt() *gqlutil.DateTime {
 	return nil
 }
 
-func (r *hackResolver) ProcessingStartedAt() *gqlutil.DateTime {
+func (r *preciseIndexResolver) ProcessingStartedAt() *gqlutil.DateTime {
 	if r.uploadResolver != nil {
 		return r.uploadResolver.StartedAt()
 	}
@@ -488,7 +488,7 @@ func (r *hackResolver) ProcessingStartedAt() *gqlutil.DateTime {
 	return nil
 }
 
-func (r *hackResolver) IndexingFinishedAt() *gqlutil.DateTime {
+func (r *preciseIndexResolver) IndexingFinishedAt() *gqlutil.DateTime {
 	if r.indexResolver != nil {
 		return r.indexResolver.FinishedAt()
 	}
@@ -496,7 +496,7 @@ func (r *hackResolver) IndexingFinishedAt() *gqlutil.DateTime {
 	return nil
 }
 
-func (r *hackResolver) ProcessingFinishedAt() *gqlutil.DateTime {
+func (r *preciseIndexResolver) ProcessingFinishedAt() *gqlutil.DateTime {
 	if r.uploadResolver != nil {
 		return r.uploadResolver.FinishedAt()
 	}
@@ -504,7 +504,7 @@ func (r *hackResolver) ProcessingFinishedAt() *gqlutil.DateTime {
 	return nil
 }
 
-func (r *hackResolver) Steps() resolverstubs.IndexStepsResolver {
+func (r *preciseIndexResolver) Steps() resolverstubs.IndexStepsResolver {
 	if r.indexResolver == nil {
 		return nil
 	}
@@ -512,7 +512,7 @@ func (r *hackResolver) Steps() resolverstubs.IndexStepsResolver {
 	return r.indexResolver.Steps()
 }
 
-func (r *hackResolver) Failure() *string {
+func (r *preciseIndexResolver) Failure() *string {
 	if r.upload != nil && r.upload.FailureMessage != nil {
 		return r.upload.FailureMessage
 	} else if r.index != nil {
@@ -522,7 +522,7 @@ func (r *hackResolver) Failure() *string {
 	return nil
 }
 
-func (r *hackResolver) PlaceInQueue() *int32 {
+func (r *preciseIndexResolver) PlaceInQueue() *int32 {
 	if r.index != nil && r.index.Rank != nil {
 		return toInt32(r.index.Rank)
 	}
@@ -534,7 +534,7 @@ func (r *hackResolver) PlaceInQueue() *int32 {
 	return nil
 }
 
-func (r *hackResolver) ShouldReindex(ctx context.Context) bool {
+func (r *preciseIndexResolver) ShouldReindex(ctx context.Context) bool {
 	if r.index == nil {
 		return false
 	}
@@ -542,7 +542,7 @@ func (r *hackResolver) ShouldReindex(ctx context.Context) bool {
 	return r.index.ShouldReindex
 }
 
-func (r *hackResolver) IsLatestForRepo() bool {
+func (r *preciseIndexResolver) IsLatestForRepo() bool {
 	if r.upload == nil {
 		return false
 	}
@@ -550,7 +550,7 @@ func (r *hackResolver) IsLatestForRepo() bool {
 	return r.upload.VisibleAtTip
 }
 
-func (r *hackResolver) RetentionPolicyOverview(ctx context.Context, args *resolverstubs.LSIFUploadRetentionPolicyMatchesArgs) (resolverstubs.CodeIntelligenceRetentionPolicyMatchesConnectionResolver, error) {
+func (r *preciseIndexResolver) RetentionPolicyOverview(ctx context.Context, args *resolverstubs.LSIFUploadRetentionPolicyMatchesArgs) (resolverstubs.CodeIntelligenceRetentionPolicyMatchesConnectionResolver, error) {
 	if r.uploadResolver == nil {
 		return nil, nil
 	}
@@ -558,7 +558,7 @@ func (r *hackResolver) RetentionPolicyOverview(ctx context.Context, args *resolv
 	return r.uploadResolver.RetentionPolicyOverview(ctx, args)
 }
 
-func (r *hackResolver) AuditLogs(ctx context.Context) (*[]resolverstubs.LSIFUploadsAuditLogsResolver, error) {
+func (r *preciseIndexResolver) AuditLogs(ctx context.Context) (*[]resolverstubs.LSIFUploadsAuditLogsResolver, error) {
 	if r.uploadResolver == nil {
 		return nil, nil
 	}
