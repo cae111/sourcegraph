@@ -8,6 +8,7 @@ import (
 
 	"github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/relay"
+	"github.com/opentracing/opentracing-go/log"
 
 	autoindexingshared "github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/autoindexing/shared"
 	sharedresolvers "github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/shared/resolvers"
@@ -23,10 +24,10 @@ import (
 const DefaultPageSize = 50
 
 func (r *rootResolver) PreciseIndexes(ctx context.Context, args *resolverstubs.PreciseIndexesQueryArgs) (_ resolverstubs.PreciseIndexConnectionResolver, err error) {
-	// ctx, traceErrs, endObservation := r.operations.lsifUploadByID.WithErrors(ctx, &err, observation.Args{LogFields: []log.Field{
-	// 	log.String("uploadID", string(id)),
-	// }})
-	// endObservation.OnCancel(ctx, 1, observation.Args{})
+	ctx, errTracer, endObservation := r.operations.preciseIndexes.WithErrors(ctx, &err, observation.Args{LogFields: []log.Field{
+		// log.String("uploadID", string(id)),
+	}})
+	endObservation.OnCancel(ctx, 1, observation.Args{})
 
 	pageSize := DefaultPageSize
 	if args.First != nil {
@@ -94,9 +95,12 @@ func (r *rootResolver) PreciseIndexes(ctx context.Context, args *resolverstubs.P
 
 	var dependencyOf int
 	if args.DependencyOf != nil {
-		v, err := unmarshalPreciseIndexGQLID(graphql.ID(*args.DependencyOf))
+		v, _, err := unmarshalPreciseIndexGQLID(graphql.ID(*args.DependencyOf))
 		if err != nil {
 			return nil, err
+		}
+		if v == 0 {
+			return nil, errors.Newf("requested dependency of precise index record without data")
 		}
 
 		dependencyOf = int(v)
@@ -104,9 +108,12 @@ func (r *rootResolver) PreciseIndexes(ctx context.Context, args *resolverstubs.P
 	}
 	var dependentOf int
 	if args.DependentOf != nil {
-		v, err := unmarshalPreciseIndexGQLID(graphql.ID(*args.DependentOf))
+		v, _, err := unmarshalPreciseIndexGQLID(graphql.ID(*args.DependentOf))
 		if err != nil {
 			return nil, err
+		}
+		if v == 0 {
+			return nil, errors.Newf("requested dependent of precise index record without data")
 		}
 
 		dependentOf = int(v)
@@ -213,7 +220,7 @@ func (r *rootResolver) PreciseIndexes(ctx context.Context, args *resolverstubs.P
 
 	resolvers := make([]resolverstubs.PreciseIndexResolver, 0, len(pairs))
 	for _, pair := range pairs {
-		resolver, err := NewPreciseIndexResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, nil, pair.upload, pair.index)
+		resolver, err := NewPreciseIndexResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, errTracer, pair.upload, pair.index)
 		if err != nil {
 			return nil, err
 		}
@@ -243,6 +250,11 @@ func NewPreciseIndexConnectionResolver(
 }
 
 func (r *rootResolver) PreciseIndexByID(ctx context.Context, id graphql.ID) (_ resolverstubs.PreciseIndexResolver, err error) {
+	ctx, errTracer, endObservation := r.operations.preciseIndexes.WithErrors(ctx, &err, observation.Args{LogFields: []log.Field{
+		log.String("id", string(id)),
+	}})
+	endObservation.OnCancel(ctx, 1, observation.Args{})
+
 	var v string
 	if err := relay.UnmarshalSpec(id, &v); err != nil {
 		return nil, err
@@ -269,7 +281,7 @@ func (r *rootResolver) PreciseIndexByID(ctx context.Context, id graphql.ID) (_ r
 			return nil, err
 		}
 
-		return NewPreciseIndexResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, nil, &upload, nil)
+		return NewPreciseIndexResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, errTracer, &upload, nil)
 
 	case "I":
 		index, ok, err := r.autoindexSvc.GetIndexByID(ctx, rawID)
@@ -277,7 +289,7 @@ func (r *rootResolver) PreciseIndexByID(ctx context.Context, id graphql.ID) (_ r
 			return nil, err
 		}
 
-		return NewPreciseIndexResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, nil, nil, &index)
+		return NewPreciseIndexResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, errTracer, nil, &index)
 	}
 
 	return nil, errors.New("invalid identifier")
@@ -446,7 +458,7 @@ func (r *preciseIndexResolver) State() string {
 		return "INDEXING_ERRORED"
 
 	case "COMPLETED":
-		// TODO - why would there be no record?
+		// Should not actually occur in practice (where did upload go?)
 		return "INDEXING_COMPLETED"
 
 	default:
@@ -566,23 +578,27 @@ func (r *preciseIndexResolver) AuditLogs(ctx context.Context) (*[]resolverstubs.
 	return r.uploadResolver.AuditLogs(ctx)
 }
 
-func unmarshalPreciseIndexGQLID(id graphql.ID) (int64, error) {
+func unmarshalPreciseIndexGQLID(id graphql.ID) (uploadID int64, indexID int64, _ error) {
 	var payload string
 	if err := relay.UnmarshalSpec(id, &payload); err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	parts := strings.Split(payload, ":")
-	if len(parts) == 2 && parts[0] == "U" {
+	if len(parts) == 2 {
 		id, err := strconv.Atoi(parts[1])
 		if err != nil {
-			return 0, err
+			return 0, 0, err
 		}
 
-		return int64(id), nil
+		if parts[0] == "U" {
+			return int64(id), 0, nil
+		} else if parts[0] == "I" {
+			return 0, int64(id), nil
+		}
 	}
 
-	return 0, errors.New("unexpected precise index ID")
+	return 0, 0, errors.New("unexpected precise index ID")
 }
 
 type pageInfo struct {
