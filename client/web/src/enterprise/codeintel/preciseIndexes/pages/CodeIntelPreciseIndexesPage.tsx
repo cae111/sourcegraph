@@ -208,7 +208,7 @@ export const HackNode: FunctionComponent<React.PropsWithChildren<HackNodeProps>>
 
         <div
             className={classNames(styles.information, 'd-flex flex-column')}
-            onClick={() => history.push({ pathname: `./hack/${node.id}` })}
+            onClick={() => history.push({ pathname: `./indexes/${node.id}` })}
         >
             <div className="m-0">
                 <H3>
