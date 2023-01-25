@@ -168,16 +168,7 @@ const sidebarRoutes: CodeIntelSideBarGroups = [
         items: [
             {
                 to: '/hack',
-                label: 'Hack',
-            },
-            {
-                to: '/uploads',
-                label: 'Uploads',
-            },
-            {
-                to: '/indexes',
-                label: 'Auto-indexing',
-                condition: () => Boolean(window.context?.codeIntelAutoIndexingEnabled),
+                label: 'Precise indexes',
             },
             {
                 to: '/configuration',

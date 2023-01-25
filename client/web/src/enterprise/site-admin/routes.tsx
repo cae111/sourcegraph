@@ -100,12 +100,29 @@ export const enterpriseSiteAdminAreaRoutes: readonly SiteAdminAreaRoute[] = (
                 batchChangesEnabled && batchChangesWebhookLogsEnabled,
         },
 
-        // Code graph upload routes
+        // Code intelligence redirect
         {
             path: '/code-intelligence',
             exact: false,
             render: props => <Redirect to={props.location.pathname.replace('/code-intelligence/', '/code-graph/')} />,
         },
+
+        // Hack routes
+        {
+            path: '/code-graph/hack',
+            render: lazyComponent(
+                () => import('../codeintel/hack/pages/CodeIntelHackListPage'),
+                'CodeIntelHackListPage'
+            ),
+            exact: true,
+        },
+        {
+            path: '/code-graph/hack/:id',
+            render: lazyComponent(() => import('../codeintel/hack/pages/CodeIntelHackPage'), 'CodeIntelHackPage'),
+            exact: true,
+        },
+
+        // Code graph upload routes
         {
             path: '/code-graph/uploads',
             render: lazyComponent(
@@ -114,7 +131,6 @@ export const enterpriseSiteAdminAreaRoutes: readonly SiteAdminAreaRoute[] = (
             ),
             exact: true,
         },
-
         {
             path: '/code-graph/uploads/:id',
             render: lazyComponent(

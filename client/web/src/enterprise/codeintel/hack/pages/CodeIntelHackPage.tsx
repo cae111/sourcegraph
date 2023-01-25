@@ -1,10 +1,22 @@
-import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react'
+import { FunctionComponent, ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 
 import { RouteComponentProps } from 'react-router'
 
 import { useApolloClient } from '@apollo/client'
+import {
+    mdiAlertCircle,
+    mdiCheck,
+    mdiCheckCircle,
+    mdiDatabaseEdit,
+    mdiDatabasePlus,
+    mdiFileUpload,
+    mdiInformationOutline,
+    mdiMapSearch,
+    mdiProgressClock,
+    mdiTimerSand,
+} from '@mdi/js'
 import { Timestamp } from '@sourcegraph/branded/src/components/Timestamp'
-import { ErrorLike, isErrorLike } from '@sourcegraph/common'
+import { ErrorLike, isDefined, isErrorLike, pluralize } from '@sourcegraph/common'
 import { TelemetryProps } from '@sourcegraph/shared/src/telemetry/telemetryService'
 import { ThemeProps } from '@sourcegraph/shared/src/theme'
 import {
@@ -24,48 +36,39 @@ import {
     H3,
     Icon,
     Link,
+    LoadingSpinner,
     PageHeader,
     Text,
+    Tooltip,
     useObservable,
 } from '@sourcegraph/wildcard'
-import { takeWhile } from 'rxjs/operators'
-import { HackFields, HackState, LsifUploadConnectionFields } from '../../../../graphql-operations'
-import { queryHack } from '../hooks/queryHack'
-
-import {
-    mdiAlertCircle,
-    mdiCheck,
-    mdiFileUpload,
-    mdiInformationOutline,
-    mdiMapSearch,
-    mdiProgressClock,
-    mdiTimerSand,
-} from '@mdi/js'
-import { isDefined } from '@sourcegraph/common'
 import classNames from 'classnames'
 import { Observable } from 'rxjs'
-import { Collapsible } from '../../../../components/Collapsible'
-import { ExecutionLogEntry } from '../../../../components/ExecutionLogEntry'
+import { takeWhile } from 'rxjs/operators'
 import {
     Connection,
     FilteredConnection,
     FilteredConnectionQueryArguments,
 } from '../../../../components/FilteredConnection'
 import { Timeline, TimelineStage } from '../../../../components/Timeline'
-import { ExecutionMetaInformation } from '../../indexes/components/ExecutionMetaInformation'
-import { DependencyOrDependentNode } from '../../uploads/components/DependencyOrDependentNode'
-import { EmptyDependencies } from '../../uploads/components/EmptyDependencies'
-import { EmptyDependents } from '../../uploads/components/EmptyDependents'
-import { EmptyUploadRetentionMatchStatus } from '../../uploads/components/EmptyUploadRetentionStatusNode'
-import { RetentionMatchNode } from '../../uploads/components/UploadRetentionStatusNode'
+import { AuditLogOperation, HackFields, HackState, LsifUploadsAuditLogsFields } from '../../../../graphql-operations'
+import { queryHack } from '../hooks/queryHack'
 import { queryHackDependencyGraph } from '../hooks/queryHackDependencyGraph'
-
-import styles from './CodeIntelHackPage.module.scss'
-import { UploadAuditLogTimeline } from '../../uploads/components/UploadAuditLogTimeline'
 import {
     NormalizedUploadRetentionMatch,
-    queryUploadRetentionMatches,
-} from '../../uploads/hooks/queryUploadRetentionMatches'
+    queryHackRetention as queryUploadRetentionMatches,
+    RetentionPolicyMatch,
+    UploadReferenceMatch,
+} from '../hooks/queryHackRetention'
+import styles from './CodeIntelHackPage.module.scss'
+import { Collapsible } from '../../../../components/Collapsible'
+import { LogOutput } from '../../../../components/LogOutput'
+import { CodeIntelUploadOrIndexRepository } from '../../shared/components/CodeIntelUploadOrIndexerRepository'
+import { CodeIntelUploadOrIndexRoot } from '../../shared/components/CodeIntelUploadOrIndexRoot'
+import { CodeIntelUploadOrIndexCommit } from '../../shared/components/CodeIntelUploadOrIndexCommit'
+import { CodeIntelUploadOrIndexCommitTags } from '../../shared/components/CodeIntelUploadOrIndexCommitTags'
+import { CodeIntelUploadOrIndexIndexer } from '../../shared/components/CodeIntelUploadOrIndexIndexer'
+import { formatDurationLong } from '../../../../util/time'
 
 export interface CodeIntelHackPageProps extends RouteComponentProps<{ id: string }>, ThemeProps, TelemetryProps {
     now?: () => Date
@@ -107,7 +110,7 @@ export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
     const [retentionPolicyMatcherState, setRetentionPolicyMatcherState] = useState(RetentionPolicyMatcherState.ShowAll)
 
     const queryDependencies = useCallback(
-        (args: FilteredConnectionQueryArguments): Observable<LsifUploadConnectionFields> => {
+        (args: FilteredConnectionQueryArguments) => {
             if (hackOrError && !isErrorLike(hackOrError)) {
                 return queryHackDependencyGraph({ ...args, dependencyOf: hackOrError.id }, apolloClient)
             }
@@ -287,12 +290,14 @@ export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
 
                 <div>TODO - DELETE/REINDEX BUTTON</div>
 
-                <HackTimeline hack={hackOrError} />
+                <Container className="mt-2">
+                    <HackTimeline hack={hackOrError} />
+                </Container>
 
                 {(hackOrError.state === HackState.COMPLETED || hackOrError.state === HackState.DELETING) && (
                     <>
                         <Container className="mt-2">
-                            <Collapsible
+                            {/* <Collapsible
                                 title={
                                     dependencyGraphState === DependencyGraphState.ShowDependencies ? (
                                         <H3 className="mb-0">Dependencies</H3>
@@ -301,119 +306,115 @@ export const CodeIntelHackPage: FunctionComponent<CodeIntelHackPageProps> = ({
                                     )
                                 }
                                 titleAtStart={true}
-                            >
-                                {dependencyGraphState === DependencyGraphState.ShowDependencies ? (
-                                    <>
-                                        <Button
-                                            type="button"
-                                            className="float-right p-0 mb-2"
-                                            variant="link"
-                                            onClick={() => setDependencyGraphState(DependencyGraphState.ShowDependents)}
-                                        >
-                                            Show dependents
-                                        </Button>
-                                        <FilteredConnection
-                                            listComponent="div"
-                                            listClassName={classNames(styles.grid, 'mb-3')}
-                                            inputClassName="w-auto"
-                                            noun="dependency"
-                                            pluralNoun="dependencies"
-                                            nodeComponent={DependencyOrDependentNode}
-                                            queryConnection={queryDependencies}
-                                            history={history}
-                                            location={location}
-                                            cursorPaging={true}
-                                            useURLQuery={false}
-                                            emptyElement={<EmptyDependencies />}
-                                        />
-                                    </>
-                                ) : (
-                                    <>
-                                        <Button
-                                            type="button"
-                                            className="float-right p-0 mb-2"
-                                            variant="link"
-                                            onClick={() =>
-                                                setDependencyGraphState(DependencyGraphState.ShowDependencies)
-                                            }
-                                        >
-                                            Show dependencies
-                                        </Button>
-                                        <FilteredConnection
-                                            listComponent="div"
-                                            listClassName={classNames(styles.grid, 'mb-3')}
-                                            inputClassName="w-auto"
-                                            noun="dependent"
-                                            pluralNoun="dependents"
-                                            nodeComponent={DependencyOrDependentNode}
-                                            queryConnection={queryDependents}
-                                            history={history}
-                                            location={location}
-                                            cursorPaging={true}
-                                            useURLQuery={false}
-                                            emptyElement={<EmptyDependents />}
-                                        />
-                                    </>
-                                )}
-                            </Collapsible>
+                            > */}
+                            {dependencyGraphState === DependencyGraphState.ShowDependencies ? (
+                                <>
+                                    <Button
+                                        type="button"
+                                        className="float-right p-0 mb-2"
+                                        variant="link"
+                                        onClick={() => setDependencyGraphState(DependencyGraphState.ShowDependents)}
+                                    >
+                                        Show dependents
+                                    </Button>
+                                    <FilteredConnection
+                                        listComponent="div"
+                                        listClassName={classNames(styles.grid, 'mb-3')}
+                                        inputClassName="w-auto"
+                                        noun="dependency"
+                                        pluralNoun="dependencies"
+                                        nodeComponent={DependencyOrDependentNode}
+                                        queryConnection={queryDependencies}
+                                        history={history}
+                                        location={location}
+                                        cursorPaging={true}
+                                        useURLQuery={false}
+                                        // emptyElement={<EmptyDependencies />}
+                                    />
+                                </>
+                            ) : (
+                                <>
+                                    <Button
+                                        type="button"
+                                        className="float-right p-0 mb-2"
+                                        variant="link"
+                                        onClick={() => setDependencyGraphState(DependencyGraphState.ShowDependencies)}
+                                    >
+                                        Show dependencies
+                                    </Button>
+                                    <FilteredConnection
+                                        listComponent="div"
+                                        listClassName={classNames(styles.grid, 'mb-3')}
+                                        inputClassName="w-auto"
+                                        noun="dependent"
+                                        pluralNoun="dependents"
+                                        nodeComponent={DependencyOrDependentNode}
+                                        queryConnection={queryDependents}
+                                        history={history}
+                                        location={location}
+                                        cursorPaging={true}
+                                        useURLQuery={false}
+                                        // emptyElement={<EmptyDependents />}
+                                    />
+                                </>
+                            )}
+                            {/* </Collapsible> */}
                         </Container>
 
                         <Container className="mt-2">
-                            <Collapsible title={<H3 className="mb-0">Retention overview</H3>} titleAtStart={true}>
-                                {retentionPolicyMatcherState === RetentionPolicyMatcherState.ShowAll ? (
-                                    <Button
-                                        type="button"
-                                        className="float-right p-0 mb-2"
-                                        variant="link"
-                                        onClick={() =>
-                                            setRetentionPolicyMatcherState(RetentionPolicyMatcherState.ShowMatchingOnly)
-                                        }
-                                    >
-                                        Show matching only
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        type="button"
-                                        className="float-right p-0 mb-2"
-                                        variant="link"
-                                        onClick={() =>
-                                            setRetentionPolicyMatcherState(RetentionPolicyMatcherState.ShowAll)
-                                        }
-                                    >
-                                        Show all
-                                    </Button>
-                                )}
-                                <FilteredConnection
-                                    listComponent="div"
-                                    listClassName={classNames(styles.grid, 'mb-3')}
-                                    inputClassName="w-auto"
-                                    noun="match"
-                                    pluralNoun="matches"
-                                    nodeComponent={RetentionMatchNode}
-                                    queryConnection={queryRetentionPoliciesCallback}
-                                    history={history}
-                                    location={location}
-                                    cursorPaging={true}
-                                    useURLQuery={false}
-                                    emptyElement={<EmptyUploadRetentionMatchStatus />}
-                                />
-                            </Collapsible>
+                            {/* <Collapsible title={<H3 className="mb-0">Retention overview</H3>} titleAtStart={true}> */}
+                            {retentionPolicyMatcherState === RetentionPolicyMatcherState.ShowAll ? (
+                                <Button
+                                    type="button"
+                                    className="float-right p-0 mb-2"
+                                    variant="link"
+                                    onClick={() =>
+                                        setRetentionPolicyMatcherState(RetentionPolicyMatcherState.ShowMatchingOnly)
+                                    }
+                                >
+                                    Show matching only
+                                </Button>
+                            ) : (
+                                <Button
+                                    type="button"
+                                    className="float-right p-0 mb-2"
+                                    variant="link"
+                                    onClick={() => setRetentionPolicyMatcherState(RetentionPolicyMatcherState.ShowAll)}
+                                >
+                                    Show all
+                                </Button>
+                            )}
+                            <FilteredConnection
+                                listComponent="div"
+                                listClassName={classNames(styles.grid, 'mb-3')}
+                                inputClassName="w-auto"
+                                noun="match"
+                                pluralNoun="matches"
+                                nodeComponent={RetentionMatchNode}
+                                queryConnection={queryRetentionPoliciesCallback}
+                                history={history}
+                                location={location}
+                                cursorPaging={true}
+                                useURLQuery={false}
+                                emptyElement={<EmptyUploadRetentionMatchStatus />}
+                            />
+                            {/* </Collapsible> */}
                         </Container>
                     </>
                 )}
 
                 <Container className="mt-2">
-                    <Collapsible title={<H3 className="mb-0">Audit Logs</H3>} titleAtStart={true}>
-                        {hackOrError.auditLogs?.length ?? 0 > 0 ? (
-                            <UploadAuditLogTimeline logs={hackOrError.auditLogs || []} />
-                        ) : (
-                            <Text alignment="center" className="text-muted w-100 mb-0 mt-1">
-                                <Icon className="mb-2" svgPath={mdiMapSearch} inline={false} aria-hidden={true} />
-                                <br />
-                                This upload has no audit logs.
-                            </Text>
-                        )}
-                    </Collapsible>
+                    {/* <Collapsible title={<H3 className="mb-0">Audit Logs</H3>} titleAtStart={true}> */}
+                    {hackOrError.auditLogs?.length ?? 0 > 0 ? (
+                        <UploadAuditLogTimeline logs={hackOrError.auditLogs || []} />
+                    ) : (
+                        <Text alignment="center" className="text-muted w-100 mb-0 mt-1">
+                            <Icon className="mb-2" svgPath={mdiMapSearch} inline={false} aria-hidden={true} />
+                            <br />
+                            This upload has no audit logs.
+                        </Text>
+                    )}
+                    {/* </Collapsible> */}
                 </Container>
             </Container>
         </>
@@ -693,3 +694,335 @@ const genericStage = <E extends { startTime: string; exitCode: number | null }>(
         expandedByDefault: !(success || !finished),
     }
 }
+
+interface ExecutionLogEntryProps extends React.PropsWithChildren<{}> {
+    logEntry: {
+        key: string
+        command: string[]
+        startTime: string
+        exitCode: number | null
+        out: string
+        durationMilliseconds: number | null
+    }
+    now?: () => Date
+}
+
+export const ExecutionLogEntry: React.FunctionComponent<React.PropsWithChildren<ExecutionLogEntryProps>> = ({
+    logEntry,
+    children,
+    now,
+}) => (
+    <Card className="mb-3">
+        <CardBody>
+            {logEntry.command.length > 0 ? (
+                <LogOutput text={logEntry.command.join(' ')} className="mb-3" logDescription="Executed command:" />
+            ) : (
+                <div className="mb-3">
+                    <span className="text-muted">Internal step {logEntry.key}.</span>
+                </div>
+            )}
+
+            <div>
+                {logEntry.exitCode === null && <LoadingSpinner className="mr-1" />}
+                {logEntry.exitCode !== null && (
+                    <>
+                        {logEntry.exitCode === 0 ? (
+                            <Icon
+                                className="text-success mr-1"
+                                svgPath={mdiCheckCircle}
+                                inline={false}
+                                aria-label="Success"
+                            />
+                        ) : (
+                            <Icon
+                                className="text-danger mr-1"
+                                svgPath={mdiAlertCircle}
+                                inline={false}
+                                aria-label="Failed"
+                            />
+                        )}
+                    </>
+                )}
+                <span className="text-muted">Started</span>{' '}
+                <Timestamp date={logEntry.startTime} now={now} noAbout={true} />
+                {logEntry.exitCode !== null && logEntry.durationMilliseconds !== null && (
+                    <>
+                        <span className="text-muted">, ran for</span>{' '}
+                        {formatDurationLong(logEntry.durationMilliseconds)}
+                    </>
+                )}
+            </div>
+            {children}
+        </CardBody>
+
+        <div className="p-2">
+            {logEntry.out ? (
+                <Collapsible title="Log output" titleAtStart={true} buttonClassName="p-2">
+                    <LogOutput text={logEntry.out} logDescription="Log output:" />
+                </Collapsible>
+            ) : (
+                <div className="p-2">
+                    <span className="text-muted">No log output available.</span>
+                </div>
+            )}
+        </div>
+    </Card>
+)
+
+export interface RetentionMatchNodeProps {
+    node: NormalizedUploadRetentionMatch
+}
+
+export const retentionByUploadTitle = 'Retention by reference'
+export const retentionByBranchTipTitle = 'Retention by tip of default branch'
+
+export const RetentionMatchNode: FunctionComponent<React.PropsWithChildren<RetentionMatchNodeProps>> = ({ node }) => {
+    if (node.matchType === 'RetentionPolicy') {
+        return <RetentionPolicyRetentionMatchNode match={node} />
+    }
+    if (node.matchType === 'UploadReference') {
+        return <UploadReferenceRetentionMatchNode match={node} />
+    }
+
+    throw new Error(`invalid node type ${JSON.stringify(node as object)}`)
+}
+
+const RetentionPolicyRetentionMatchNode: FunctionComponent<
+    React.PropsWithChildren<{ match: RetentionPolicyMatch }>
+> = ({ match }) => (
+    <>
+        <span className={styles.separator} />
+
+        <div className={classNames(styles.information, 'd-flex flex-column')}>
+            <div className="m-0">
+                {match.configurationPolicy ? (
+                    <Link to={`../configuration/${match.configurationPolicy.id}`} className="p-0">
+                        <H3 className="m-0 d-block d-md-inline">{match.configurationPolicy.name}</H3>
+                    </Link>
+                ) : (
+                    <H3 className="m-0 d-block d-md-inline">{retentionByBranchTipTitle}</H3>
+                )}
+                <div className="mr-2 d-block d-mdinline-block">
+                    Retained: {match.matches ? 'yes' : 'no'}
+                    {match.protectingCommits.length !== 0 && (
+                        <>
+                            , by {match.protectingCommits.length} visible{' '}
+                            {pluralize('commit', match.protectingCommits.length)}, including{' '}
+                            {match.protectingCommits
+                                .slice(0, 4)
+                                .map(hash => hash.slice(0, 7))
+                                .join(', ')}
+                            <Tooltip content="This upload is retained to service code-intel queries for commit(s) with applicable retention policies.">
+                                <Icon
+                                    aria-label="This upload is retained to service code-intel queries for commit(s) with applicable retention policies."
+                                    className="ml-1"
+                                    svgPath={mdiInformationOutline}
+                                />
+                            </Tooltip>
+                        </>
+                    )}
+                    {!match.configurationPolicy && (
+                        <Tooltip content="Uploads at the tip of the default branch are always retained indefinitely.">
+                            <Icon
+                                aria-label="Uploads at the tip of the default branch are always retained indefinitely."
+                                className="ml-1"
+                                svgPath={mdiInformationOutline}
+                            />
+                        </Tooltip>
+                    )}
+                </div>
+            </div>
+        </div>
+    </>
+)
+
+const UploadReferenceRetentionMatchNode: FunctionComponent<
+    React.PropsWithChildren<{ match: UploadReferenceMatch }>
+> = ({ match }) => (
+    <>
+        <span className={styles.separator} />
+
+        <div className={classNames(styles.information, 'd-flex flex-column')}>
+            <div className="m-0">
+                <H3 className="m-0 d-block d-md-inline">{retentionByUploadTitle}</H3>
+                <div className="mr-2 d-block d-mdinline-block">
+                    Referenced by {match.total} {pluralize('upload', match.total, 'uploads')}, including{' '}
+                    {match.uploadSlice
+                        .slice(0, 3)
+                        .map<React.ReactNode>(upload => (
+                            <Link key={upload.id} to={`/site-admin/code-graph/uploads/${upload.id}`}>
+                                {upload.projectRoot?.repository.name ?? 'unknown'}
+                            </Link>
+                        ))
+                        .reduce((previous, current) => [previous, ', ', current])}
+                    <Tooltip content="Uploads that are dependencies of other upload(s) are retained to service cross-repository code-intel queries.">
+                        <Icon
+                            aria-label="Uploads that are dependencies of other upload(s) are retained to service cross-repository code-intel queries."
+                            className="ml-1"
+                            svgPath={mdiInformationOutline}
+                        />
+                    </Tooltip>
+                </div>
+            </div>
+        </div>
+    </>
+)
+
+export interface DependencyOrDependentNodeProps {
+    node: HackFields
+    now?: () => Date
+}
+
+export const DependencyOrDependentNode: FunctionComponent<React.PropsWithChildren<DependencyOrDependentNodeProps>> = ({
+    node,
+}) => (
+    <>
+        <span className={styles.separator} />
+
+        <div className={classNames(styles.information, 'd-flex flex-column')}>
+            <div className="m-0">
+                <H3 className="m-0 d-block d-md-inline">
+                    <CodeIntelUploadOrIndexRepository node={node} />
+                </H3>
+            </div>
+
+            <div>
+                <span className="mr-2 d-block d-mdinline-block">
+                    Directory <CodeIntelUploadOrIndexRoot node={node} /> indexed at commit{' '}
+                    <CodeIntelUploadOrIndexCommit node={node} />
+                    {node.tags.length > 0 && (
+                        <>
+                            , <CodeIntelUploadOrIndexCommitTags tags={node.tags} />,
+                        </>
+                    )}{' '}
+                    by <CodeIntelUploadOrIndexIndexer node={node} />
+                </span>
+            </div>
+        </div>
+    </>
+)
+
+export interface UploadAuditLogTimelineProps {
+    logs: LsifUploadsAuditLogsFields[]
+}
+
+export const UploadAuditLogTimeline: FunctionComponent<React.PropsWithChildren<UploadAuditLogTimelineProps>> = ({
+    logs,
+}) => {
+    const stages = logs?.map(
+        (log): TimelineStage => ({
+            icon:
+                log.operation === AuditLogOperation.CREATE ? (
+                    <Icon aria-label="Success" svgPath={mdiDatabasePlus} />
+                ) : (
+                    <Icon aria-label="Warn" svgPath={mdiDatabaseEdit} />
+                ),
+            text: stageText(log),
+            className: log.operation === AuditLogOperation.CREATE ? 'bg-success' : 'bg-warning',
+            expandedByDefault: true,
+            date: log.logTimestamp,
+            details: (
+                <>
+                    {log.reason && (
+                        <>
+                            <Container>
+                                <b>Reason</b>: {log.reason}
+                            </Container>
+                            <br />
+                        </>
+                    )}
+                    <div className={styles.tableContainer}>
+                        <table className="table mb-0 table-striped">
+                            <thead>
+                                <tr>
+                                    <th className={styles.dbColumnCol} scope="column">
+                                        Column
+                                    </th>
+                                    <th className={styles.dataColumnCol} scope="column">
+                                        Old
+                                    </th>
+                                    <th scope="column">New</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {log.changedColumns.map((change, index) => (
+                                    // eslint-disable-next-line react/no-array-index-key
+                                    <tr key={index} className="overflow-scroll">
+                                        <td className="mr-2">{change.column}</td>
+                                        <td className="mr-2">{change.old || 'NULL'}</td>
+                                        <td className="mr-2">{change.new || 'NULL'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            ),
+        })
+    )
+
+    return <Timeline showDurations={false} stages={stages} />
+}
+
+function stageText(log: LsifUploadsAuditLogsFields): ReactNode {
+    if (log.operation === AuditLogOperation.CREATE) {
+        return 'Upload created'
+    }
+
+    return (
+        <>
+            Altered columns:{' '}
+            {formatReactNodeList(log.changedColumns.map(change => <span key={change.column}>{change.column}</span>))}
+        </>
+    )
+}
+
+function formatReactNodeList(list: ReactNode[]): ReactNode {
+    if (list.length === 0) {
+        return <></>
+    }
+    if (list.length === 1) {
+        return list[0]
+    }
+
+    return (
+        <>
+            {list.slice(0, -1).reduce((previous, current) => [previous, ', ', current])} and {list[list.length - 1]}
+        </>
+    )
+}
+
+export const EmptyUploadRetentionMatchStatus: React.FunctionComponent<React.PropsWithChildren<unknown>> = () => (
+    <Text alignment="center" className="text-muted w-100 mb-0 mt-1">
+        <Icon className="mb-2" svgPath={mdiMapSearch} inline={false} aria-hidden={true} />
+        <br />
+        No retention policies matched.
+    </Text>
+)
+
+export interface ExecutionMetaInformationProps {
+    image: string
+    commands: string[]
+    root: string
+}
+
+export const ExecutionMetaInformation: React.FunctionComponent<
+    React.PropsWithChildren<ExecutionMetaInformationProps>
+> = ({ image, commands, root }) => (
+    <div className="pt-3">
+        <div className={classNames(styles.dockerCommandSpec, 'py-2 border-top pl-2')}>
+            <strong className={styles.header}>Image</strong>
+            <div>{image}</div>
+        </div>
+        <div className={classNames(styles.dockerCommandSpec, 'py-2 border-top pl-2')}>
+            <strong className={styles.header}>Commands</strong>
+            <div>
+                <Code>{commands.join(' ')}</Code>
+            </div>
+        </div>
+        <div className={classNames(styles.dockerCommandSpec, 'py-2 border-top pl-2')}>
+            <strong className={styles.header}>Root</strong>
+            <div>/{root}</div>
+        </div>
+    </div>
+)

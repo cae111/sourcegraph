@@ -12,7 +12,7 @@ import {
 } from '../../../../components/FilteredConnection'
 import { HackFields, HackState } from '../../../../graphql-operations'
 import { queryHackList } from '../hooks/queryHackList'
-
+import { useEnqueueIndexJob } from '../hooks/useEnqueueIndexJob'
 import { Timestamp } from '@sourcegraph/branded/src/components/Timestamp'
 import {
     Alert,
@@ -28,15 +28,17 @@ import {
 } from '@sourcegraph/wildcard'
 import * as H from 'history'
 
-import { mdiAlertCircle, mdiCheckCircle, mdiFileUpload, mdiTimerSand } from '@mdi/js'
+import { mdiAlertCircle, mdiCheckCircle, mdiDatabase, mdiFileUpload, mdiSourceRepository, mdiTimerSand } from '@mdi/js'
 import styles from './CodeIntelHackListPage.module.scss'
 
+import { AuthenticatedUser } from '@sourcegraph/shared/src/auth'
 import classNames from 'classnames'
-import { of } from 'rxjs'
+import { of, Subject } from 'rxjs'
 import { PageTitle } from '../../../../components/PageTitle'
-import { queryCommitGraphMetadata } from '../../indexes/hooks/queryCommitGraphMetadata'
+import { queryCommitGraphMetadata } from '../hooks/queryCommitGraphMetadata'
 
 export interface CodeIntelHackListPageProps extends RouteComponentProps<{}>, ThemeProps, TelemetryProps {
+    authenticatedUser: AuthenticatedUser | null
     repo?: { id: string }
     now?: () => Date
 }
@@ -50,20 +52,20 @@ const filters: FilteredConnectionFilter[] = [
             {
                 label: 'All',
                 value: 'all',
-                tooltip: 'Show all hacks',
+                tooltip: 'Show all indexes',
                 args: {},
             },
             {
                 label: 'Completed',
                 value: 'completed',
-                tooltip: 'Show completed hacks only',
+                tooltip: 'Show completed indexes only',
                 args: { states: HackState.COMPLETED },
             },
 
             {
                 label: 'Queued',
                 value: 'queued',
-                tooltip: 'Show queued hacks only',
+                tooltip: 'Show queued indexes only',
                 args: {
                     states: [
                         HackState.UPLOADING_INDEX,
@@ -75,13 +77,13 @@ const filters: FilteredConnectionFilter[] = [
             {
                 label: 'In progress',
                 value: 'in-progress',
-                tooltip: 'Show in-progress hacks only',
+                tooltip: 'Show in-progress indexes only',
                 args: { states: [HackState.INDEXING, HackState.PROCESSING].join(',') },
             },
             {
                 label: 'Errored',
                 value: 'errored',
-                tooltip: 'Show errored hacks only',
+                tooltip: 'Show errored indexes only',
                 args: { states: [HackState.INDEXING_ERRORED, HackState.PROCESSING_ERRORED].join(',') },
             },
         ],
@@ -89,6 +91,7 @@ const filters: FilteredConnectionFilter[] = [
 ]
 
 export const CodeIntelHackListPage: FunctionComponent<CodeIntelHackListPageProps> = ({
+    authenticatedUser,
     repo,
     now,
     telemetryService,
@@ -100,7 +103,7 @@ export const CodeIntelHackListPage: FunctionComponent<CodeIntelHackListPageProps
     const apolloClient = useApolloClient()
     const queryHackListCallback = useCallback(
         (args: FilteredConnectionQueryArguments) => {
-            return queryHackList(args, apolloClient)
+            return queryHackList({ ...args, repo: repo?.id }, apolloClient)
         },
         [queryHackList, apolloClient]
     )
@@ -119,43 +122,60 @@ export const CodeIntelHackListPage: FunctionComponent<CodeIntelHackListPageProps
         [queryHackList]
     )
 
+    const querySubject = useMemo(() => new Subject<string>(), [])
+
     return (
         <div>
-            <PageTitle title="Hacks" />
-            <PageHeader headingElement="h2" path={[{ text: 'Hacks' }]} description={'Hacks!!.'} className="mb-3" />
+            <PageTitle title="Precise indexes" />
+            <PageHeader
+                headingElement="h2"
+                path={[{ text: 'Precise indexes' }]}
+                description={'Precise code intelligence index data and auto-indexing jobs.'}
+                className="mb-3"
+            />
 
-            {repo && commitGraphMetadata && (
+            {repo && (
                 <>
-                    <Alert variant={commitGraphMetadata.stale ? 'primary' : 'success'} aria-live="off">
-                        {commitGraphMetadata.stale ? (
-                            <>
-                                Repository commit graph is currently stale and is queued to be refreshed. Refreshing the
-                                commit graph updates which uploads are visible from which commits.
-                            </>
-                        ) : (
-                            <>Repository commit graph is currently up to date.</>
-                        )}{' '}
-                        {commitGraphMetadata.updatedAt && (
-                            <>
-                                Last refreshed <Timestamp date={commitGraphMetadata.updatedAt} now={now} />.
-                            </>
-                        )}
-                    </Alert>
+                    {commitGraphMetadata && (
+                        <>
+                            <Alert variant={commitGraphMetadata.stale ? 'primary' : 'success'} aria-live="off">
+                                {commitGraphMetadata.stale ? (
+                                    <>
+                                        Repository commit graph is currently stale and is queued to be refreshed.
+                                        Refreshing the commit graph updates which uploads are visible from which
+                                        commits.
+                                    </>
+                                ) : (
+                                    <>Repository commit graph is currently up to date.</>
+                                )}{' '}
+                                {commitGraphMetadata.updatedAt && (
+                                    <>
+                                        Last refreshed <Timestamp date={commitGraphMetadata.updatedAt} now={now} />.
+                                    </>
+                                )}
+                            </Alert>
+                        </>
+                    )}
+
+                    {authenticatedUser?.siteAdmin && (
+                        <Container className="mb-2">
+                            <EnqueueForm repoId={repo.id} querySubject={querySubject} />
+                        </Container>
+                    )}
                 </>
             )}
 
-            <div>TODO - ENQUEUE BUTTON</div>
             <div>TODO - DELETE AND REINDEX BUTTONS</div>
 
             <Container>
                 <div className="list-group position-relative">
                     <FilteredConnection<HackFields, Omit<HackNodeProps, 'node'>>
                         listComponent="div"
-                        // inputClassName="mr-2"
+                        inputClassName="ml-2 flex-1"
                         listClassName={classNames(styles.grid, 'mb-3')}
-                        noun="hack"
-                        pluralNoun="hacks"
-                        // querySubject={querySubject}
+                        noun="precise index"
+                        pluralNoun="precise indexes"
+                        querySubject={querySubject}
                         nodeComponent={HackNode}
                         nodeComponentProps={{ history }}
                         queryConnection={queryConnection}
@@ -163,17 +183,6 @@ export const CodeIntelHackListPage: FunctionComponent<CodeIntelHackListPageProps
                         location={location}
                         cursorPaging={true}
                         filters={filters}
-                        // headComponent={() => (
-                        //     <thead>
-                        //         <tr>
-                        //             <th>Repo</th>
-                        //             <th>Commit</th>
-                        //             <th>Root</th>
-                        //             <th>Indexer</th>
-                        //             <th>State</th>
-                        //         </tr>
-                        //     </thead>
-                        // )}
                         // emptyElement={<EmptyAutoIndex />}
                         // updates={deletes}
                     />
@@ -280,8 +289,13 @@ export const HackNode: FunctionComponent<React.PropsWithChildren<HackNodeProps>>
 
         <span className={classNames(styles.state, 'd-none d-md-inline')}>
             <div className="d-flex flex-column align-items-center">
-                <CodeIntelStateIcon state={node.state} />
-                <CodeIntelStateLabel state={node.state} placeInQueue={node.placeInQueue} className="mt-2 ml-2" />
+                <CodeIntelStateIcon state={node.state} autoIndexed={!!node.indexingFinishedAt} />
+                <CodeIntelStateLabel
+                    state={node.state}
+                    autoIndexed={!!node.indexingFinishedAt}
+                    placeInQueue={node.placeInQueue}
+                    className="mt-2"
+                />
             </div>
         </span>
     </>
@@ -289,26 +303,20 @@ export const HackNode: FunctionComponent<React.PropsWithChildren<HackNodeProps>>
 
 export interface CodeIntelStateIconProps {
     state: HackState
+    autoIndexed: boolean
     className?: string
 }
 
 export const CodeIntelStateIcon: FunctionComponent<React.PropsWithChildren<CodeIntelStateIconProps>> = ({
     state,
+    autoIndexed,
     className,
 }) =>
-    state === HackState.QUEUED_FOR_INDEXING ? (
-        <Icon className={className} svgPath={mdiTimerSand} inline={false} aria-label="Queued for indexing" />
-    ) : state === HackState.QUEUED_FOR_PROCESSING ? (
-        <Icon className={className} svgPath={mdiTimerSand} inline={false} aria-label="Queued for processing" />
-    ) : state === HackState.INDEXING ? (
-        <LoadingSpinner inline={false} className={className} />
-    ) : state === HackState.INDEXING_ERRORED ? (
-        <Icon
-            className={classNames('text-danger', className)}
-            svgPath={mdiAlertCircle}
-            inline={false}
-            aria-label="Indexing errored"
-        />
+    state === HackState.QUEUED_FOR_PROCESSING ? (
+        <div className="text-center">
+            <Icon className={className} svgPath={mdiTimerSand} inline={false} aria-label="Queued" />
+            <Icon className={className} svgPath={mdiDatabase} inline={false} aria-label="Queued for processing" />
+        </div>
     ) : state === HackState.PROCESSING ? (
         <LoadingSpinner inline={false} className={className} />
     ) : state === HackState.PROCESSING_ERRORED ? (
@@ -316,7 +324,7 @@ export const CodeIntelStateIcon: FunctionComponent<React.PropsWithChildren<CodeI
             className={classNames('text-danger', className)}
             svgPath={mdiAlertCircle}
             inline={false}
-            aria-label="Processing errored"
+            aria-label="Errored"
         />
     ) : state === HackState.COMPLETED ? (
         <Icon
@@ -334,12 +342,34 @@ export const CodeIntelStateIcon: FunctionComponent<React.PropsWithChildren<CodeI
             inline={false}
             aria-label="Deleting"
         />
+    ) : state === HackState.QUEUED_FOR_INDEXING ? (
+        <div className="text-center">
+            <Icon className={className} svgPath={mdiTimerSand} inline={false} aria-label="Queued" />
+            <Icon className={className} svgPath={mdiSourceRepository} inline={false} aria-label="Queued for indexing" />
+        </div>
+    ) : state === HackState.INDEXING ? (
+        <LoadingSpinner inline={false} className={className} />
+    ) : state === HackState.INDEXING_ERRORED ? (
+        <Icon
+            className={classNames('text-danger', className)}
+            svgPath={mdiAlertCircle}
+            inline={false}
+            aria-label="Errored"
+        />
+    ) : autoIndexed ? (
+        <Icon
+            className={classNames('text-success', className)}
+            svgPath={mdiCheckCircle}
+            inline={false}
+            aria-label="Completed"
+        />
     ) : (
         <></>
     )
 
 export interface CodeIntelStateLabelProps {
     state: HackState
+    autoIndexed: boolean
     placeInQueue?: number | null
     className?: string
 }
@@ -348,39 +378,40 @@ const labelClassNames = classNames(styles.label, 'text-muted')
 
 export const CodeIntelStateLabel: FunctionComponent<React.PropsWithChildren<CodeIntelStateLabelProps>> = ({
     state,
+    autoIndexed,
     placeInQueue,
     className,
 }) =>
-    state === HackState.QUEUED_FOR_INDEXING ? (
+    state === HackState.QUEUED_FOR_PROCESSING ? (
         <span className={classNames(labelClassNames, className)}>
-            Queued for indexing <CodeIntelStateLabelPlaceInQueue placeInQueue={placeInQueue} />
+            Queued <CodeIntelStateLabelPlaceInQueue placeInQueue={placeInQueue} />
         </span>
-    ) : state === HackState.QUEUED_FOR_PROCESSING ? (
+    ) : state === HackState.PROCESSING ? (
+        <span className={classNames(labelClassNames, className)}>Processing...</span>
+    ) : state === HackState.PROCESSING_ERRORED ? (
+        <span className={classNames(labelClassNames, className)}>Errored</span>
+    ) : state === HackState.COMPLETED ? (
+        <span className={classNames(labelClassNames, className)}>Completed</span>
+    ) : state === HackState.DELETED ? (
+        <span className={classNames(labelClassNames, className)}>Deleted</span>
+    ) : state === HackState.DELETING ? (
+        <span className={classNames(labelClassNames, className)}>Deleting</span>
+    ) : state === HackState.UPLOADING_INDEX ? (
+        <span className={classNames(labelClassNames, className)}>Uploading...</span>
+    ) : state === HackState.QUEUED_FOR_INDEXING ? (
         <span className={classNames(labelClassNames, className)}>
-            Queued for processing <CodeIntelStateLabelPlaceInQueue placeInQueue={placeInQueue} />
+            Queued <CodeIntelStateLabelPlaceInQueue placeInQueue={placeInQueue} />
         </span>
+    ) : state === HackState.INDEXING ? (
+        <span className={classNames(labelClassNames, className)}>Indexing...</span>
+    ) : state === HackState.INDEXING_ERRORED ? (
+        <span className={classNames(labelClassNames, className)}>Errored</span>
+    ) : state === HackState.INDEXING_COMPLETED ? (
+        <span className={classNames(labelClassNames, className)}>completed</span>
+    ) : autoIndexed ? (
+        <span className={classNames(labelClassNames, className)}>Completed</span>
     ) : (
-        <span className={classNames(labelClassNames, className)}>
-            {state === HackState.INDEXING
-                ? 'Indexing'
-                : state === HackState.INDEXING_ERRORED
-                ? 'Indexing errored'
-                : state === HackState.INDEXING_COMPLETED
-                ? 'Indexing completed'
-                : state === HackState.PROCESSING
-                ? 'Processing'
-                : state === HackState.PROCESSING_ERRORED
-                ? 'Processing errored'
-                : state === HackState.COMPLETED
-                ? 'Processing completed'
-                : state === HackState.DELETED
-                ? 'Deleted'
-                : state === HackState.DELETING
-                ? 'Deleting'
-                : state === HackState.UPLOADING_INDEX
-                ? 'Uploading index'
-                : 'Unknown'}
-        </span>
+        <></>
     )
 
 export interface CodeIntelStateLabelPlaceInQueueProps {
@@ -389,4 +420,98 @@ export interface CodeIntelStateLabelPlaceInQueueProps {
 
 const CodeIntelStateLabelPlaceInQueue: FunctionComponent<
     React.PropsWithChildren<CodeIntelStateLabelPlaceInQueueProps>
-> = ({ placeInQueue }) => (placeInQueue ? <span className={styles.block}>(#{placeInQueue} in line)</span> : <></>)
+> = ({ placeInQueue }) => (placeInQueue ? <span className={styles.block}>(#{placeInQueue})</span> : <></>)
+
+export interface EnqueueFormProps {
+    repoId: string
+    querySubject: Subject<string>
+}
+
+enum State {
+    Idle,
+    Queueing,
+    Queued,
+}
+
+export const EnqueueForm: FunctionComponent<React.PropsWithChildren<EnqueueFormProps>> = ({ repoId, querySubject }) => {
+    const [revlike, setRevlike] = useState('HEAD')
+    const [state, setState] = useState(() => State.Idle)
+    const [queueResult, setQueueResult] = useState<number>()
+    const [enqueueError, setEnqueueError] = useState<Error>()
+    const { handleEnqueueIndexJob } = useEnqueueIndexJob()
+
+    const enqueue = useCallback(async () => {
+        setState(State.Queueing)
+        setEnqueueError(undefined)
+        setQueueResult(undefined)
+
+        try {
+            const indexes = await handleEnqueueIndexJob({
+                variables: { id: repoId, rev: revlike },
+            }).then(({ data }) => data)
+
+            const queueResultLength = indexes?.queueAutoIndexJobsForRepo.length || 0
+            setQueueResult(queueResultLength)
+            if (queueResultLength > 0) {
+                querySubject.next(indexes?.queueAutoIndexJobsForRepo[0].inputCommit)
+            }
+        } catch (error) {
+            setEnqueueError(error)
+            setQueueResult(undefined)
+        } finally {
+            setState(State.Queued)
+        }
+    }, [repoId, revlike, querySubject, handleEnqueueIndexJob])
+
+    return (
+        <>
+            {enqueueError && <ErrorAlert prefix="Error enqueueing index job" error={enqueueError} />}
+            <div className="mb-3">
+                Provide a{' '}
+                <Link
+                    to="https://git-scm.com/docs/git-rev-parse.html#_specifying_revisions"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                >
+                    Git revspec
+                </Link>{' '}
+                to enqueue a new auto-indexing job.
+            </div>
+            <div className="form-inline">
+                <Label htmlFor="revlike">Git revspec</Label>
+
+                <Input
+                    id="revlike"
+                    className="ml-2"
+                    value={revlike}
+                    onChange={event => setRevlike(event.target.value)}
+                />
+
+                <Button
+                    type="button"
+                    title="Enqueue thing"
+                    disabled={state === State.Queueing}
+                    className="ml-2"
+                    variant="primary"
+                    onClick={enqueue}
+                >
+                    Enqueue
+                </Button>
+            </div>
+
+            {state === State.Queued &&
+                queueResult !== undefined &&
+                (queueResult > 0 ? (
+                    <Alert className="mt-3 mb-0" variant="success">
+                        {queueResult} auto-indexing jobs enqueued.
+                    </Alert>
+                ) : (
+                    <Alert className="mt-3 mb-0" variant="info">
+                        Failed to enqueue any auto-indexing jobs.
+                        <br />
+                        Check if the auto-index configuration is up-to-date.
+                    </Alert>
+                ))}
+        </>
+    )
+}

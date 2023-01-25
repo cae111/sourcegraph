@@ -172,6 +172,16 @@ func (r *hackServiceResolver) Hack(ctx context.Context, args *resolverstubs.Hack
 		skipIndexes = true
 	}
 
+	var repositoryID int
+	if args.Repo != nil {
+		v, err := UnmarshalRepositoryID(*args.Repo)
+		if err != nil {
+			return nil, err
+		}
+
+		repositoryID = int(v)
+	}
+
 	term := ""
 	if args.Query != nil {
 		term = *args.Query
@@ -181,6 +191,7 @@ func (r *hackServiceResolver) Hack(ctx context.Context, args *resolverstubs.Hack
 	totalUploadCount := 0
 	if !skipUploads {
 		if uploads, totalUploadCount, err = r.uploadsService.GetUploads(ctx, uploadsshared.GetUploadsOptions{
+			RepositoryID: repositoryID,
 			States:       uploadStates,
 			Term:         term,
 			DependencyOf: dependencyOf,
@@ -196,6 +207,7 @@ func (r *hackServiceResolver) Hack(ctx context.Context, args *resolverstubs.Hack
 	totalIndexCount := 0
 	if !skipIndexes {
 		if indexes, totalIndexCount, err = r.autoIndexingService.GetIndexes(ctx, autoindexingshared.GetIndexesOptions{
+			RepositoryID:  repositoryID,
 			States:        indexStates,
 			Term:          term,
 			WithoutUpload: true,

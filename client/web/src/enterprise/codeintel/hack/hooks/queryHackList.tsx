@@ -6,8 +6,8 @@ import { HackConnectionFields, HackListResult, HackListVariables, HackState } fr
 import { hackFieldsFragment } from './types'
 
 const HACK_LIST = gql`
-    query HackList($states: [HackState!], $query: String, $first: Int, $after: String) {
-        hack(states: $states, query: $query, first: $first, after: $after) {
+    query HackList($repo: ID, $states: [HackState!], $query: String, $first: Int, $after: String) {
+        hack(repo: $repo, states: $states, query: $query, first: $first, after: $after) {
             nodes {
                 ...HackFields
             }
@@ -23,10 +23,11 @@ const HACK_LIST = gql`
 `
 
 export const queryHackList = (
-    { states, query, first, after }: Partial<Omit<HackListVariables, 'states'>> & { states?: string },
+    { repo, states, query, first, after }: Partial<Omit<HackListVariables, 'states'>> & { states?: string },
     client: ApolloClient<object>
 ): Observable<HackConnectionFields> => {
     const variables: HackListVariables = {
+        repo: repo ?? null,
         states: states ? states.split(',').map(state => state.toUpperCase() as HackState) : null,
         query: query ?? null,
         first: first ?? null,

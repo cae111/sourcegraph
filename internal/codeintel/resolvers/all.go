@@ -84,6 +84,7 @@ type HackServiceResolver interface {
 type HackQueryArgs struct {
 	graphqlutil.ConnectionArgs
 	After        *string
+	Repo         *graphql.ID
 	Query        *string
 	States       *[]string
 	DependencyOf *string

@@ -13,8 +13,8 @@ import {
 import { hackFieldsFragment } from './types'
 
 const HACK_DEPENDENCY_GRAPH = gql`
-    query HackDependencyGraph($dependencyOf: ID, $dependentOf: ID, $first: Int, $after: String) {
-        hack(dependencyOf: $dependencyOf, dependentOf: $dependentOf, first: $first, after: $after) {
+    query HackDependencyGraph($dependencyOf: ID, $dependentOf: ID, $query: String, $first: Int, $after: String) {
+        hack(dependencyOf: $dependencyOf, dependentOf: $dependentOf, query: $query, first: $first, after: $after) {
             nodes {
                 ...HackFields
             }
@@ -30,12 +30,13 @@ const HACK_DEPENDENCY_GRAPH = gql`
 `
 
 export const queryHackDependencyGraph = (
-    { dependencyOf, dependentOf, first, after }: Partial<HackDependencyGraphVariables>,
+    { dependencyOf, dependentOf, query, first, after }: Partial<HackDependencyGraphVariables>,
     client: ApolloClient<object>
 ): Observable<HackConnectionFields> => {
     const variables: HackDependencyGraphVariables = {
         dependencyOf: dependencyOf ?? null,
         dependentOf: dependentOf ?? null,
+        query: query ?? null,
         first: first ?? null,
         after: after ?? null,
     }
