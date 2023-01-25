@@ -37,8 +37,8 @@ const (
 	// redisGroupString doesn't mean the data is a string. This is the
 	// original group of command (get, set).
 	redisGroupString redisGroup = 's'
-	redisGroupList              = 'l'
-	redisGroupHash              = 'h'
+	redisGroupList   redisGroup = 'l'
+	redisGroupHash   redisGroup = 'h'
 )
 
 type jsonKeyValue struct {
