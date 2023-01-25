@@ -19,8 +19,9 @@ import { CodeIntelIndexMeta } from '../components/CodeIntelIndexMeta'
 import { CodeIntelIndexTimeline } from '../components/CodeIntelIndexTimeline'
 import { queryLisfIndex as defaultQueryLsifIndex } from '../hooks/queryLisfIndex'
 import { useDeleteLsifIndex } from '../hooks/useDeleteLsifIndex'
+import { ThemeProps } from '@sourcegraph/shared/src/theme'
 
-export interface CodeIntelIndexPageProps extends RouteComponentProps<{ id: string }>, TelemetryProps {
+export interface CodeIntelIndexPageProps extends RouteComponentProps<{ id: string }>, ThemeProps, TelemetryProps {
     authenticatedUser: AuthenticatedUser | null
     queryLisfIndex?: typeof defaultQueryLsifIndex
     now?: () => Date

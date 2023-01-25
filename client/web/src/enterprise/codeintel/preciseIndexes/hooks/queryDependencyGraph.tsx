@@ -5,7 +5,6 @@ import { map } from 'rxjs/operators'
 import { getDocumentNode, gql } from '@sourcegraph/http-client'
 
 import {
-    ConnectionFields,
     PreciseIndexConnectionFields,
     PreciseIndexDependencyGraphResult,
     PreciseIndexDependencyGraphVariables,
