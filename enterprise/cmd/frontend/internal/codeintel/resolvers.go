@@ -14,7 +14,6 @@ type Resolver struct {
 	codenavResolver          resolverstubs.CodeNavServiceResolver
 	policiesRootResolver     resolverstubs.PoliciesServiceResolver
 	uploadsRootResolver      resolverstubs.UploadsServiceResolver
-	hackServiceResolver      resolverstubs.HackServiceResolver
 }
 
 func newResolver(
@@ -22,14 +21,12 @@ func newResolver(
 	codenavResolver resolverstubs.CodeNavServiceResolver,
 	policiesRootResolver resolverstubs.PoliciesServiceResolver,
 	uploadsRootResolver resolverstubs.UploadsServiceResolver,
-	hackServiceResolver resolverstubs.HackServiceResolver,
 ) *Resolver {
 	return &Resolver{
 		autoIndexingRootResolver: autoIndexingRootResolver,
 		codenavResolver:          codenavResolver,
 		policiesRootResolver:     policiesRootResolver,
 		uploadsRootResolver:      uploadsRootResolver,
-		hackServiceResolver:      hackServiceResolver,
 	}
 }
 
@@ -44,8 +41,8 @@ func (r *Resolver) NodeResolvers() map[string]gql.NodeByIDFunc {
 		"CodeIntelligenceConfigurationPolicy": func(ctx context.Context, id graphql.ID) (gql.Node, error) {
 			return r.ConfigurationPolicyByID(ctx, id)
 		},
-		"Hack": func(ctx context.Context, id graphql.ID) (gql.Node, error) {
-			return r.HackByID(ctx, id)
+		"PreciseIndex": func(ctx context.Context, id graphql.ID) (gql.Node, error) {
+			return r.PreciseIndexByID(ctx, id)
 		},
 	}
 }
@@ -58,12 +55,12 @@ func (r *Resolver) LSIFUploads(ctx context.Context, args *resolverstubs.LSIFUplo
 	return r.uploadsRootResolver.LSIFUploads(ctx, args)
 }
 
-func (r *Resolver) Hack(ctx context.Context, args *resolverstubs.HackQueryArgs) (_ resolverstubs.HackConnectionResolver, err error) {
-	return r.hackServiceResolver.Hack(ctx, args)
+func (r *Resolver) PreciseIndexes(ctx context.Context, args *resolverstubs.PreciseIndexesQueryArgs) (_ resolverstubs.PreciseIndexConnectionResolver, err error) {
+	return r.autoIndexingRootResolver.PreciseIndexes(ctx, args)
 }
 
-func (r *Resolver) HackByID(ctx context.Context, id graphql.ID) (_ resolverstubs.HackResolver, err error) {
-	return r.hackServiceResolver.HackByID(ctx, id)
+func (r *Resolver) PreciseIndexByID(ctx context.Context, id graphql.ID) (_ resolverstubs.PreciseIndexResolver, err error) {
+	return r.autoIndexingRootResolver.PreciseIndexByID(ctx, id)
 }
 
 func (r *Resolver) LSIFUploadsByRepo(ctx context.Context, args *resolverstubs.LSIFRepositoryUploadsQueryArgs) (_ resolverstubs.LSIFUploadConnectionResolver, err error) {

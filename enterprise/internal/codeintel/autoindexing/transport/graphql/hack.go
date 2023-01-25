@@ -1,4 +1,4 @@
-package sharedresolvers
+package graphql
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/graph-gophers/graphql-go/relay"
 
 	autoindexingshared "github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/autoindexing/shared"
+	sharedresolvers "github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/shared/resolvers"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/shared/types"
 	uploadsshared "github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/uploads/shared"
 	resolverstubs "github.com/sourcegraph/sourcegraph/internal/codeintel/resolvers"
@@ -19,69 +20,9 @@ import (
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
-type hackServiceResolver struct {
-	uploadsService      UploadsService
-	autoIndexingService AutoIndexingService
-	policySvc           PolicyService
-}
-
-func NewHackServiceResolver(
-	observationCtx *observation.Context,
-	uploadsService UploadsService,
-	autoIndexingService AutoIndexingService,
-	policySvc PolicyService,
-) resolverstubs.HackServiceResolver {
-	return &hackServiceResolver{
-		uploadsService:      uploadsService,
-		autoIndexingService: autoIndexingService,
-		policySvc:           policySvc,
-	}
-}
-
 const DefaultPageSize = 50
 
-func (r *hackServiceResolver) HackByID(ctx context.Context, id graphql.ID) (_ resolverstubs.HackResolver, err error) {
-	var v string
-	if err := relay.UnmarshalSpec(id, &v); err != nil {
-		return nil, err
-	}
-	parts := strings.Split(v, ":")
-	if len(parts) != 2 {
-		return nil, errors.New("invalid identifier")
-	}
-	rawID, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return nil, errors.New("invalid identifier")
-	}
-
-	// Create a new prefetcher here as we only want to cache upload and index records in
-	// the same graphQL request, not across different request.
-	prefetcher := NewPrefetcher(r.autoIndexingService, r.uploadsService)
-	db := r.autoIndexingService.GetUnsafeDB()
-	locationResolver := NewCachedLocationResolver(db, gitserver.NewClient(db))
-
-	switch parts[0] {
-	case "U":
-		upload, ok, err := r.uploadsService.GetUploadByID(ctx, rawID)
-		if err != nil || !ok {
-			return nil, err
-		}
-
-		return NewHackResolver(ctx, r.autoIndexingService, r.uploadsService, r.policySvc, prefetcher, locationResolver, nil, &upload, nil)
-
-	case "I":
-		index, ok, err := r.autoIndexingService.GetIndexByID(ctx, rawID)
-		if err != nil || !ok {
-			return nil, err
-		}
-
-		return NewHackResolver(ctx, r.autoIndexingService, r.uploadsService, r.policySvc, prefetcher, locationResolver, nil, nil, &index)
-	}
-
-	return nil, errors.New("invalid identifier")
-}
-
-func (r *hackServiceResolver) Hack(ctx context.Context, args *resolverstubs.HackQueryArgs) (_ resolverstubs.HackConnectionResolver, err error) {
+func (r *rootResolver) PreciseIndexes(ctx context.Context, args *resolverstubs.PreciseIndexesQueryArgs) (_ resolverstubs.PreciseIndexConnectionResolver, err error) {
 	// ctx, traceErrs, endObservation := r.operations.lsifUploadByID.WithErrors(ctx, &err, observation.Args{LogFields: []log.Field{
 	// 	log.String("uploadID", string(id)),
 	// }})
@@ -190,7 +131,7 @@ func (r *hackServiceResolver) Hack(ctx context.Context, args *resolverstubs.Hack
 	var uploads []types.Upload
 	totalUploadCount := 0
 	if !skipUploads {
-		if uploads, totalUploadCount, err = r.uploadsService.GetUploads(ctx, uploadsshared.GetUploadsOptions{
+		if uploads, totalUploadCount, err = r.uploadSvc.GetUploads(ctx, uploadsshared.GetUploadsOptions{
 			RepositoryID: repositoryID,
 			States:       uploadStates,
 			Term:         term,
@@ -206,7 +147,7 @@ func (r *hackServiceResolver) Hack(ctx context.Context, args *resolverstubs.Hack
 	var indexes []types.Index
 	totalIndexCount := 0
 	if !skipIndexes {
-		if indexes, totalIndexCount, err = r.autoIndexingService.GetIndexes(ctx, autoindexingshared.GetIndexesOptions{
+		if indexes, totalIndexCount, err = r.autoindexSvc.GetIndexes(ctx, autoindexingshared.GetIndexesOptions{
 			RepositoryID:  repositoryID,
 			States:        indexStates,
 			Term:          term,
@@ -260,9 +201,9 @@ func (r *hackServiceResolver) Hack(ctx context.Context, args *resolverstubs.Hack
 
 	// Create a new prefetcher here as we only want to cache upload and index records in
 	// the same graphQL request, not across different request.
-	prefetcher := NewPrefetcher(r.autoIndexingService, r.uploadsService)
-	db := r.autoIndexingService.GetUnsafeDB()
-	locationResolver := NewCachedLocationResolver(db, gitserver.NewClient(db))
+	prefetcher := sharedresolvers.NewPrefetcher(r.autoindexSvc, r.uploadSvc)
+	db := r.autoindexSvc.GetUnsafeDB()
+	locationResolver := sharedresolvers.NewCachedLocationResolver(db, gitserver.NewClient(db))
 
 	for _, pair := range pairs {
 		if pair.upload != nil && pair.upload.AssociatedIndexID != nil {
@@ -270,9 +211,9 @@ func (r *hackServiceResolver) Hack(ctx context.Context, args *resolverstubs.Hack
 		}
 	}
 
-	resolvers := make([]resolverstubs.HackResolver, 0, len(pairs))
+	resolvers := make([]resolverstubs.PreciseIndexResolver, 0, len(pairs))
 	for _, pair := range pairs {
-		resolver, err := NewHackResolver(ctx, r.autoIndexingService, r.uploadsService, r.policySvc, prefetcher, locationResolver, nil, pair.upload, pair.index)
+		resolver, err := NewHackResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, nil, pair.upload, pair.index)
 		if err != nil {
 			return nil, err
 		}
@@ -284,16 +225,16 @@ func (r *hackServiceResolver) Hack(ctx context.Context, args *resolverstubs.Hack
 }
 
 type hackConnectionResolver struct {
-	nodes      []resolverstubs.HackResolver
+	nodes      []resolverstubs.PreciseIndexResolver
 	totalCount int
 	cursor     string
 }
 
 func NewHackConnectionResolver(
-	nodes []resolverstubs.HackResolver,
+	nodes []resolverstubs.PreciseIndexResolver,
 	totalCount int,
 	cursor string,
-) resolverstubs.HackConnectionResolver {
+) resolverstubs.PreciseIndexConnectionResolver {
 	return &hackConnectionResolver{
 		nodes:      nodes,
 		totalCount: totalCount,
@@ -301,7 +242,48 @@ func NewHackConnectionResolver(
 	}
 }
 
-func (r *hackConnectionResolver) Nodes(ctx context.Context) ([]resolverstubs.HackResolver, error) {
+func (r *rootResolver) PreciseIndexByID(ctx context.Context, id graphql.ID) (_ resolverstubs.PreciseIndexResolver, err error) {
+	var v string
+	if err := relay.UnmarshalSpec(id, &v); err != nil {
+		return nil, err
+	}
+	parts := strings.Split(v, ":")
+	if len(parts) != 2 {
+		return nil, errors.New("invalid identifier")
+	}
+	rawID, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return nil, errors.New("invalid identifier")
+	}
+
+	// Create a new prefetcher here as we only want to cache upload and index records in
+	// the same graphQL request, not across different request.
+	prefetcher := sharedresolvers.NewPrefetcher(r.autoindexSvc, r.uploadSvc)
+	db := r.autoindexSvc.GetUnsafeDB()
+	locationResolver := sharedresolvers.NewCachedLocationResolver(db, gitserver.NewClient(db))
+
+	switch parts[0] {
+	case "U":
+		upload, ok, err := r.uploadSvc.GetUploadByID(ctx, rawID)
+		if err != nil || !ok {
+			return nil, err
+		}
+
+		return NewHackResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, nil, &upload, nil)
+
+	case "I":
+		index, ok, err := r.autoindexSvc.GetIndexByID(ctx, rawID)
+		if err != nil || !ok {
+			return nil, err
+		}
+
+		return NewHackResolver(ctx, r.autoindexSvc, r.uploadSvc, r.policySvc, prefetcher, locationResolver, nil, nil, &index)
+	}
+
+	return nil, errors.New("invalid identifier")
+}
+
+func (r *hackConnectionResolver) Nodes(ctx context.Context) ([]resolverstubs.PreciseIndexResolver, error) {
 	return r.nodes, nil
 }
 
@@ -330,15 +312,15 @@ func NewHackResolver(
 	autoindexingSvc AutoIndexingService,
 	uploadsSvc UploadsService,
 	policySvc PolicyService,
-	prefetcher *Prefetcher,
-	locationResolver *CachedLocationResolver,
+	prefetcher *sharedresolvers.Prefetcher,
+	locationResolver *sharedresolvers.CachedLocationResolver,
 	traceErrs *observation.ErrCollector,
 	upload *types.Upload,
 	index *types.Index,
-) (resolverstubs.HackResolver, error) {
+) (resolverstubs.PreciseIndexResolver, error) {
 	var uploadResolver resolverstubs.LSIFUploadResolver
 	if upload != nil {
-		uploadResolver = NewUploadResolver(uploadsSvc, autoindexingSvc, policySvc, *upload, prefetcher, locationResolver, traceErrs)
+		uploadResolver = sharedresolvers.NewUploadResolver(uploadsSvc, autoindexingSvc, policySvc, *upload, prefetcher, locationResolver, traceErrs)
 
 		if upload.AssociatedIndexID != nil {
 			v, ok, err := prefetcher.GetIndexByID(ctx, *upload.AssociatedIndexID)
@@ -353,7 +335,7 @@ func NewHackResolver(
 
 	var indexResolver resolverstubs.LSIFIndexResolver
 	if index != nil {
-		indexResolver = NewIndexResolver(autoindexingSvc, uploadsSvc, policySvc, *index, prefetcher, locationResolver, traceErrs)
+		indexResolver = sharedresolvers.NewIndexResolver(autoindexingSvc, uploadsSvc, policySvc, *index, prefetcher, locationResolver, traceErrs)
 	}
 
 	return &hackResolver{
@@ -583,3 +565,30 @@ func (r *hackResolver) AuditLogs(ctx context.Context) (*[]resolverstubs.LSIFUplo
 
 	return r.uploadResolver.AuditLogs(ctx)
 }
+
+func unmarshalHackGQLID(id graphql.ID) (int64, error) {
+	var payload string
+	if err := relay.UnmarshalSpec(id, &payload); err != nil {
+		return 0, err
+	}
+
+	parts := strings.Split(payload, ":")
+	if len(parts) == 2 || len(parts) == 4 && parts[0] == "U" {
+		id, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return 0, err
+		}
+
+		return int64(id), nil
+	}
+
+	return 0, errors.New("unexpected hack ID")
+}
+
+type pageInfo struct {
+	endCursor   *string
+	hasNextPage bool
+}
+
+func (r *pageInfo) EndCursor() *string { return r.endCursor }
+func (r *pageInfo) HasNextPage() bool  { return r.hasNextPage }

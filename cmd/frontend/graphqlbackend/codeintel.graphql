@@ -207,15 +207,15 @@ extend type Query {
         after: String
     ): CodeIntelligenceConfigurationPolicyConnection!
 
-    hack(
+    preciseIndexes(
         repo: ID
         query: String
-        states: [HackState!]
+        states: [PreciseIndexState!]
         dependencyOf: ID
         dependentOf: ID
         first: Int
         after: String
-    ): HackConnection!
+    ): PreciseIndexConnection!
 
     """
     The repository's LSIF uploads.
@@ -1080,13 +1080,13 @@ enum LSIFUploadState {
     DELETED
 }
 
-type HackConnection {
-    nodes: [Hack!]!
+type PreciseIndexConnection {
+    nodes: [PreciseIndex!]!
     totalCount: Int
     pageInfo: PageInfo!
 }
 
-enum HackState {
+enum PreciseIndexState {
     UPLOADING_INDEX
     QUEUED_FOR_PROCESSING
     PROCESSING
@@ -1100,7 +1100,7 @@ enum HackState {
     INDEXING_COMPLETED
 }
 
-type Hack implements Node {
+type PreciseIndex implements Node {
     id: ID!
     projectRoot: CodeIntelGitTree
     inputCommit: String!
@@ -1108,7 +1108,7 @@ type Hack implements Node {
     inputRoot: String!
     inputIndexer: String!
     indexer: CodeIntelIndexer
-    state: HackState!
+    state: PreciseIndexState!
     queuedAt: DateTime
     uploadedAt: DateTime
     indexingStartedAt: DateTime
@@ -1120,14 +1120,13 @@ type Hack implements Node {
     placeInQueue: Int
     shouldReindex: Boolean!
     isLatestForRepo: Boolean!
-
     retentionPolicyOverview(
         matchesOnly: Boolean!
         query: String
         after: String
         first: Int
-    ): CodeIntelligenceRetentionPolicyMatchesConnection!
-    auditLogs: [LSIFUploadAuditLog!]
+    ): CodeIntelligenceRetentionPolicyMatchesConnection! # TODO
+    auditLogs: [LSIFUploadAuditLog!] # TODO
 }
 
 """

@@ -22,7 +22,6 @@ type RootResolver interface {
 	AutoindexingServiceResolver
 	UploadsServiceResolver
 	PoliciesServiceResolver
-	HackServiceResolver
 }
 
 type CodeNavServiceResolver interface {
@@ -47,6 +46,9 @@ type AutoindexingServiceResolver interface {
 	RepositorySummary(ctx context.Context, id graphql.ID) (CodeIntelRepositorySummaryResolver, error)
 	CodeIntelligenceInferenceScript(ctx context.Context) (string, error)
 	UpdateCodeIntelligenceInferenceScript(ctx context.Context, args *UpdateCodeIntelligenceInferenceScriptArgs) (*EmptyResponse, error)
+
+	PreciseIndexByID(ctx context.Context, id graphql.ID) (PreciseIndexResolver, error)
+	PreciseIndexes(ctx context.Context, args *PreciseIndexesQueryArgs) (PreciseIndexConnectionResolver, error)
 }
 
 type UploadsServiceResolver interface {
@@ -76,12 +78,7 @@ type CodeIntelRepositorySummaryResolver interface {
 	AvailableIndexers() []InferredAvailableIndexersResolver
 }
 
-type HackServiceResolver interface {
-	HackByID(ctx context.Context, id graphql.ID) (HackResolver, error)
-	Hack(ctx context.Context, args *HackQueryArgs) (HackConnectionResolver, error)
-}
-
-type HackQueryArgs struct {
+type PreciseIndexesQueryArgs struct {
 	graphqlutil.ConnectionArgs
 	After        *string
 	Repo         *graphql.ID
@@ -103,13 +100,13 @@ type LSIFUploadConnectionResolver interface {
 	PageInfo(ctx context.Context) (PageInfo, error)
 }
 
-type HackConnectionResolver interface {
-	Nodes(ctx context.Context) ([]HackResolver, error)
+type PreciseIndexConnectionResolver interface {
+	Nodes(ctx context.Context) ([]PreciseIndexResolver, error)
 	TotalCount(ctx context.Context) (*int32, error)
 	PageInfo(ctx context.Context) (PageInfo, error)
 }
 
-type HackResolver interface {
+type PreciseIndexResolver interface {
 	ID() graphql.ID
 	ProjectRoot(ctx context.Context) (GitTreeEntryResolver, error)
 	InputCommit() string

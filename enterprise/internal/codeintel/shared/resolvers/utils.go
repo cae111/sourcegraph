@@ -5,14 +5,12 @@ import (
 	"io/fs"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/relay"
 
 	"github.com/sourcegraph/sourcegraph/internal/api"
-	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
 // strPtr creates a pointer to the given value. If the value is an
@@ -46,25 +44,6 @@ func marshalLSIFUploadGQLID(uploadID int64) graphql.ID {
 func unmarshalConfigurationPolicyGQLID(id graphql.ID) (configurationPolicyID int64, err error) {
 	err = relay.UnmarshalSpec(id, &configurationPolicyID)
 	return configurationPolicyID, err
-}
-
-func unmarshalHackGQLID(id graphql.ID) (int64, error) {
-	var payload string
-	if err := relay.UnmarshalSpec(id, &payload); err != nil {
-		return 0, err
-	}
-
-	parts := strings.Split(payload, ":")
-	if len(parts) == 2 || len(parts) == 4 && parts[0] == "U" {
-		id, err := strconv.Atoi(parts[1])
-		if err != nil {
-			return 0, err
-		}
-
-		return int64(id), nil
-	}
-
-	return 0, errors.New("unexpected hack ID")
 }
 
 type pageInfo struct {
