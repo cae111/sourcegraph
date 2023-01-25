@@ -210,7 +210,7 @@ func (r *rootResolver) PreciseIndexes(ctx context.Context, args *resolverstubs.P
 	// the same graphQL request, not across different request.
 	prefetcher := sharedresolvers.NewPrefetcher(r.autoindexSvc, r.uploadSvc)
 	db := r.autoindexSvc.GetUnsafeDB()
-	locationResolver := sharedresolvers.NewCachedLocationResolver(db, gitserver.NewClient(db))
+	locationResolver := sharedresolvers.NewCachedLocationResolver(db, gitserver.NewClient())
 
 	for _, pair := range pairs {
 		if pair.upload != nil && pair.upload.AssociatedIndexID != nil {
@@ -272,7 +272,7 @@ func (r *rootResolver) PreciseIndexByID(ctx context.Context, id graphql.ID) (_ r
 	// the same graphQL request, not across different request.
 	prefetcher := sharedresolvers.NewPrefetcher(r.autoindexSvc, r.uploadSvc)
 	db := r.autoindexSvc.GetUnsafeDB()
-	locationResolver := sharedresolvers.NewCachedLocationResolver(db, gitserver.NewClient(db))
+	locationResolver := sharedresolvers.NewCachedLocationResolver(db, gitserver.NewClient())
 
 	switch parts[0] {
 	case "U":
