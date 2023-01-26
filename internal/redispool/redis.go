@@ -6,9 +6,102 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
+
+// redisGroup is which type of data we have. We use the term group since that
+// is what redis uses in its documentation to segregate the different types of
+// commands you can run ("string", list, hash).
+type redisGroup byte
+
+const (
+	// redisGroupString doesn't mean the data is a string. This is the
+	// original group of command (get, set).
+	redisGroupString redisGroup = 's'
+	redisGroupList   redisGroup = 'l'
+	redisGroupHash   redisGroup = 'h'
+)
+
+func marshalRedisValue(g redisGroup, v any, deadline time.Time) ([]byte, error) {
+	var c conn
+	c.writeHeader(g, deadline)
+
+	switch g {
+	case redisGroupString:
+		err := c.writeArg(v)
+		if err != nil {
+			return nil, err
+		}
+	case redisGroupList, redisGroupHash:
+		vs, ok := v.([]any)
+		if !ok {
+			return nil, errors.Errorf("redis naive internal error: non list marshalled for redis group %c", byte(g))
+		}
+		_ = c.writeLen('*', len(vs))
+		for _, v := range vs {
+			err := c.writeArg(v)
+			if err != nil {
+				return nil, err
+			}
+		}
+	default:
+		return nil, errors.Errorf("redis naive internal error: unkown redis group %c", byte(g))
+	}
+
+	return c.bw.Bytes(), nil
+}
+
+func unmarshalRedisValue(b []byte) (g redisGroup, v any, deadline time.Time, err error) {
+	c := conn{bw: *bytes.NewBuffer(b)}
+
+	g, deadline, err = c.readHeader()
+	if err != nil {
+		return g, nil, deadline, err
+	}
+
+	/*
+		if !deadline.IsZero() && now().After(deadline) {
+			// Return early before checking g since it has expired.
+			return nil, deadline, nil
+		}
+
+		if reply[0] != byte(g) {
+			return nil, deadline, redis.Error("WRONGTYPE Operation against a key holding the wrong kind of value")
+		}
+	*/
+
+	v, err = c.readReply()
+	if err != nil {
+		return g, v, deadline, err
+	}
+
+	// Validation
+	switch g {
+	case redisGroupString:
+		// noop
+	case redisGroupList:
+		_, ok := v.([]any)
+		if !ok {
+			return g, nil, deadline, errors.Errorf("redis naive internal error: non list marshalled for redis group %c", byte(g))
+		}
+	case redisGroupHash:
+		vs, ok := v.([]any)
+		if !ok {
+			return g, nil, deadline, errors.Errorf("redis naive internal error: non list marshalled for redis group %c", byte(g))
+		}
+		if len(vs)%2 != 0 {
+			return g, nil, deadline, errors.New("redis naive internal error: hash list is not divisible by 2")
+		}
+	default:
+		return g, nil, deadline, errors.Errorf("redis naive internal error: unkown redis group %c", byte(g))
+	}
+
+	return g, v, deadline, nil
+
+}
 
 type conn struct {
 	bw bytes.Buffer
@@ -19,6 +112,21 @@ type conn struct {
 
 	// Scratch space for formatting integers and floats.
 	numScratch [40]byte
+}
+
+func (c *conn) writeHeader(g redisGroup, deadline time.Time) error {
+	// Note: this writes a small version header which is just the character !
+	// and g. This is enough so we can change the data in the future.
+	_ = c.bw.WriteByte('!')
+	_ = c.bw.WriteByte(byte(g))
+
+	// redis has 1s resolution on TTLs, so we can use unix timestamps as
+	// deadlines.
+	var unixDeadline int64
+	if !deadline.IsZero() {
+		unixDeadline = deadline.UTC().Unix
+	}
+	return c.writeArg(unixDeadline)
 }
 
 func (c *conn) writeArg(arg interface{}) (err error) {
@@ -103,6 +211,26 @@ func (c *conn) readLine() ([]byte, error) {
 		return nil, protocolError("bad response line terminator")
 	}
 	return p[:i], nil
+}
+
+func (c *conn) readHeader() (g redisGroup, deadline time.Time, err error) {
+	var header [2]byte
+	n, err := c.bw.Read(header[:])
+	if err != nil || n != 2 {
+		return g, deadline, errors.New("redis naive internal error: failed to parse value header")
+	}
+	if header[0] != '!' {
+		return g, deadline, errors.Errorf("redis naive internal error: expected first byte of value header to be '!' got %q", header[0])
+	}
+	g = redisGroup(header[1])
+
+	deadlineUnix, err := redis.Int64(c.readReply())
+	if err != nil {
+		return g, deadline, errors.Wrap(err, "redis naive internal error: failed to parse value deadline")
+	}
+	deadline = time.Unix(deadlineUnix, 0).UTC()
+
+	return g, deadline, nil
 }
 
 func (c *conn) readReply() (interface{}, error) {

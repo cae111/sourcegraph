@@ -9,10 +9,6 @@ import (
 	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
-// TODO
-type NaiveKeyValueValue struct {
-}
-
 type NaiveKeyValue interface {
 	Get(ctx context.Context, key string) ([]byte, error)
 	Set(ctx context.Context, key string, value []byte) error
@@ -21,29 +17,31 @@ type NaiveKeyValue interface {
 	TTL(ctx context.Context, key string) (int, error)
 }
 
-func FromNaive(naive NaiveKeyValue) KeyValue {
+// NaiveUpdater operates on the value for a key in a NaiveKeyValueStore.
+// currentValue is the current value in the store, found is if the key exists
+// in the store. newValue is the new value for it that needs to be stored, or
+// remove is true if the key should be removed.
+//
+// Note: strings are used to ensure we pass copies around and avoid mutating
+// values. They should not be treated as utf8 text.
+//
+// Note: a store should do this update atomically/under concurrency control.
+type NaiveUpdater func(currentValue string, found bool) (newValue string, remove bool)
+
+type NaiveKeyValueStore func(ctx context.Context, key string, f NaiveUpdater) error
+
+func FromNaive(naive NaiveKeyValue, store NaiveKeyValueStore) KeyValue {
 	return &jsonKeyValue{
 		naive: naive,
+		store: store,
 		ctx:   context.Background(),
 	}
 }
 
-// redisGroup is which type of data we have. We use the term group since that
-// is what redis uses in its documentation to segregate the different types of
-// commands you can run ("string", list, hash).
-type redisGroup byte
-
-const (
-	// redisGroupString doesn't mean the data is a string. This is the
-	// original group of command (get, set).
-	redisGroupString redisGroup = 's'
-	redisGroupList   redisGroup = 'l'
-	redisGroupHash   redisGroup = 'h'
-)
-
 type jsonKeyValue struct {
 	// TODO mutex?
 	naive NaiveKeyValue
+	store NaiveKeyValueStore
 	ctx   context.Context
 }
 

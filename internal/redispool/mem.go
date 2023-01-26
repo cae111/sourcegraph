@@ -2,6 +2,7 @@ package redispool
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -73,5 +74,20 @@ func (m memNaiveKeyValue) get(key string) (memNaiveKeyValueValue, error) {
 }
 
 func MemoryKeyValue() KeyValue {
-	return FromNaive(make(memNaiveKeyValue))
+	var mu sync.Mutex
+	m := map[string]string{}
+	store := func(_ context.Context, key string, f NaiveUpdater) error {
+		mu.Lock()
+		defer mu.Unlock()
+		currentValue, found := m[key]
+		newValue, remove := f(currentValue, found)
+		if remove {
+			delete(m, key)
+		} else if currentValue != newValue {
+			m[key] = newValue
+		}
+		return nil
+	}
+
+	return FromNaive(make(memNaiveKeyValue), store)
 }
